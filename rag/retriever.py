@@ -3,10 +3,22 @@
 from pathlib import Path
 from langchain_community.vectorstores import Chroma
 from langchain_ollama import OllamaEmbeddings
+import config
 
 
 def _get_embedding(model_name: str = "qwen3-embedding:0.6b"):
-    return OllamaEmbeddings(model=model_name)
+    """Instancie les embeddings Ollama (local ou distant)."""
+    kwargs = {"model": model_name}
+
+    # Si serveur distant configuré, utiliser la base URL et les headers
+    if config.OLLAMA_BASE_URL:
+        kwargs["base_url"] = config.OLLAMA_BASE_URL
+    if config.OLLAMA_API_KEY:
+        kwargs["headers"] = {
+            "Authorization": f"Bearer {config.OLLAMA_API_KEY}",
+        }
+
+    return OllamaEmbeddings(**kwargs)
 
 
 def create_retriever(splits: list, model_name: str = "qwen3-embedding:0.6b",

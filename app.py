@@ -10,6 +10,7 @@ from db import db
 from rag import ingestion, retriever as retriever_mod
 from graph.graph import build_agent_graph
 from tools.progress import get_progress_summary
+from ui.renderers import render_quiz_html, render_feynman_html, render_artifact_html, render_confirmation_html
 
 # ─── Page config ────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -143,8 +144,41 @@ def _method_badge(method: str) -> str:
         "diagnostic": ":material/biotech: Diagnostic",
         "quiz": ":material/quiz: Quiz",
         "artifact": ":material/draw: Artefact",
+        "web_search": ":material/language: Recherche Web",
+        "revision": ":material/event: Revision",
     }
     return badges.get(method, "")
+
+
+def _render_answer(answer: str, method: str, result: dict):
+    """Affiche la réponse avec le renderer HTML adapté si possible."""
+    import streamlit.components.v1 as components
+
+    if method == "quiz" and result.get("quiz_questions"):
+        html = render_quiz_html(result["quiz_questions"], quiz_id="qz")
+        components.html(html, height=400, scrolling=True)
+        return
+
+    if method == "feynman":
+        topic = result.get("active_competency", result.get("feynman_topic", "cette notion"))
+        score = result.get("feynman_score")
+        feedback = answer if score is not None else None
+        html = render_feynman_html(topic=topic, feedback=feedback, score=score)
+        components.html(html, height=350, scrolling=True)
+        return
+
+    if method == "artifact":
+        # Extraire titre + contenu depuis le markdown généré
+        lines = answer.split("\n", 2)
+        title = lines[0].replace("### :material/draw: ", "").strip() if lines else "Artefact"
+        content = lines[2] if len(lines) > 2 else answer
+        html = render_artifact_html(title=title, content=content,
+                                    artifact_type=result.get("tool_result", "schema"))
+        components.html(html, height=500, scrolling=True)
+        return
+
+    # Fallback : markdown classique
+    st.markdown(answer)
 
 
 def _sync_chroma_with_db():
@@ -351,11 +385,61 @@ if st.session_state.nav_page == "chat":
 
                 status.update(label="Termine", state="complete", expanded=False)
 
+            # ─── Human-in-the-loop : afficher boutons de confirmation ───
+            if result.get("pending_confirmation"):
+                prompt_text = result.get("confirmation_prompt", "Confirmer ?")
+                conf_type = result.get("confirmation_type", "")
+                st.info(prompt_text)
+
+                col_yes, col_no = st.columns(2)
+                with col_yes:
+                    if st.button(":material/check: Oui, c'est parti !", key=f"conf_yes_{conf_type}", width="stretch"):
+                        with db.get_connection(config.DB_PATH) as conn:
+                            row = conn.execute(
+                                "SELECT langgraph_thread_id FROM session WHERE id = ?",
+                                (st.session_state.active_session_id,),
+                            ).fetchone()
+                            thread_id = row["langgraph_thread_id"] if row else f"agent_{selected_model}_{uuid.uuid4().hex[:8]}"
+                        thread_config = {"configurable": {"thread_id": thread_id}}
+                        result = agent_graph.invoke(
+                            {"user_confirmed": True}, config=thread_config
+                        )
+                        answer = result.get("answer", "")
+                        method = result.get("method", "")
+                        st.session_state.messages.append({"role": "assistant", "content": answer})
+                        db.add_message(
+                            st.session_state.active_session_id, "assistant", answer,
+                            method_used=method, db_path=config.DB_PATH,
+                        )
+                        st.rerun()
+                with col_no:
+                    if st.button(":material/close: Non, pas maintenant", key=f"conf_no_{conf_type}", width="stretch"):
+                        with db.get_connection(config.DB_PATH) as conn:
+                            row = conn.execute(
+                                "SELECT langgraph_thread_id FROM session WHERE id = ?",
+                                (st.session_state.active_session_id,),
+                            ).fetchone()
+                            thread_id = row["langgraph_thread_id"] if row else f"agent_{selected_model}_{uuid.uuid4().hex[:8]}"
+                        thread_config = {"configurable": {"thread_id": thread_id}}
+                        result = agent_graph.invoke(
+                            {"user_confirmed": False}, config=thread_config
+                        )
+                        answer = result.get("answer", "Pas de souci !")
+                        method = result.get("method", "")
+                        st.session_state.messages.append({"role": "assistant", "content": answer})
+                        db.add_message(
+                            st.session_state.active_session_id, "assistant", answer,
+                            method_used=method, db_path=config.DB_PATH,
+                        )
+                        st.rerun()
+                st.stop()  # On ne continue pas tant que l'utilisateur n'a pas répondu
+
+            # ─── Affichage normal (avec renderers HTML si applicable) ───
             badge = _method_badge(method)
             if badge:
                 st.caption(badge)
 
-            st.markdown(answer)
+            _render_answer(answer, method, result)
 
         # Sauvegarder la réponse
         db.add_message(

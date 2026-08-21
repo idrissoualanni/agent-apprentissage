@@ -1,27 +1,33 @@
 # Agent d'Apprentissage
 
-Agent pédagogique basé sur LangGraph + Ollama + ChromaDB. Interface Streamlit avec sessions, quiz, méthode Feynman, répétition espacée (Leitner).
+Agent pédagogique basé sur LangGraph + Ollama + ChromaDB. Interface Streamlit avec sessions, quiz interactif HTML, méthode Feynman, répétition espacée (Leitner), recherche web, planificateur de révision, et human-in-the-loop.
 
 ## Architecture
 
 ```
-app.py                    → Interface Streamlit (5 pages)
+app.py                    → Interface Streamlit (5 pages + renderers HTML)
 config.py                 → Configuration centralisée (.env)
 ├── db/
 │   ├── schema.sql        → Schéma SQLite (9 tables)
 │   └── db.py             → Couche d'accès SQLite
 ├── graph/
 │   ├── state.py          → TypedDict AgentState (LangGraph)
-│   ├── nodes.py          → 7 nœuds (router, diagnostic, retrieve, method, generate, tool, evaluate)
+│   ├── nodes.py          → 9 nœuds (router, answer_processing, diagnostic,
+│   │                       retrieve, method, confirmation, generate, tool, evaluate)
 │   └── graph.py          → Construction StateGraph + SqliteSaver
+├── llm/
+│   └── cloud_providers.py → Factory get_llm() — Ollama local ou distant
 ├── rag/
 │   ├── ingestion.py      → Chargement PDF + chunking hiérarchique
 │   └── retriever.py      → ChromaDB persistant (create/load/add)
 ├── tools/
 │   ├── quiz.py           → Génération quiz JSON via Ollama
 │   ├── feynman.py        → Évaluation restitution Feynman
-│   ├── progress.py       → Système Leitner + update mastery
-│   └── artifact.py       → Génération artefacts pédagogiques
+│   ├── progress.py       → Système Leitner + plan de révision
+│   ├── artifact.py       → Génération artefacts pédagogiques
+│   └── web_search.py     → Recherche web DuckDuckGo
+├── ui/
+│   └── renderers.py      → Templates HTML interactifs (quiz, feynman, artefacts)
 └── data/
     ├── documents/        → PDFs uploadés
     └── chroma/           → ChromaDB persistant
@@ -29,29 +35,46 @@ config.py                 → Configuration centralisée (.env)
 
 ## Fonctionnement
 
-### Pipeline RAG
+### Pipeline RAG conditionnel
 
 1. **Upload PDF** → `rag/ingestion.py` chunk le document en segments
 2. **Indexation** → Segments ajoutés à ChromaDB via `rag/retriever.py`
-3. **Question** → Router charge le profil, décide diagnostic ou retrieval
-4. **Retrieval** → ChromaDB récupère les k segments les plus pertinents
-5. **Méthode** → Choix pédagogique selon le niveau (scaffold/socratic/quiz/feynman)
-6. **Génération** → Ollama génère la réponse avec le prompt adapté
-7. **Évaluation** → Score Leitner mis à jour en base
+3. **Question** → Router charge le profil, détecte questions méta vs pédagogiques
+4. **RAG conditionnel** → Skip retrieval pour salutations/ack, retrieval pour questions pédagogiques
+5. **Méthode** → Choix pédagogique selon le niveau + type de question
+6. **Human-in-the-loop** → Confirmation avant quiz/Feynman/artefact
+7. **Génération** → Ollama génère la réponse avec le prompt adapté
+8. **Évaluation** → Score Leitner mis à jour en base
 
 ### StateGraph LangGraph
 
 ```
-START → router → (diagnostic? | retrieve) → method → (tool → evaluate → generate | generate) → END
+START → router → answer_processing? → retrieve? → method → confirmation? → tool? → evaluate → generate → END
+         └→ diagnostic ──────────────────────────────────────────────────────────────→ generate → END
+         └→ method (skip RAG si méta) ─→ confirmation? → tool? → evaluate → generate → END
 ```
 
-- **router** : charge le profil, décide du premier routing
-- **diagnostic** : questions de diagnostic si pas de domaine défini
-- **retrieve** : RAG retrieval via ChromaDB
-- **method** : choix de la méthode pédagogique
-- **generate** : génération Ollama avec le prompt adapté
-- **tool** : exécution quiz/feynman/artifact
-- **evaluate** : mise à jour de la progression en base
+**Nœuds :**
+- **router** — Charge le profil, détecte questions méta, définit `rag_needed`
+- **answer_processing** — Capture réponses quiz/Feynman en attente
+- **diagnostic** — Questions de diagnostic si pas de domaine défini
+- **retrieve** — RAG retrieval via ChromaDB (skip si `rag_needed=False`)
+- **method** — Choix de la méthode pédagogique + détection web_search/revision
+- **confirmation** — Human-in-the-loop avant actions lourdes (quiz/Feynman/artefact)
+- **generate** — Génération Ollama avec le prompt adapté
+- **tool** — Exécution quiz/feynman/artifact/web_search/revision
+- **evaluate** — Mise à jour de la progression en base
+
+### Fonctionnalités V2
+
+| Fonctionnalité | Description |
+|---|---|
+| **RAG conditionnel** | Détecte salutations/méta → skip retrieval, gain de latence |
+| **Human-in-the-loop** | Confirmation UI avant quiz/Feynman/artefact (boutons Oui/Non) |
+| **Recherche web** | DuckDuckGo intégré pour questions d'actualité/prix/stats |
+| **Planificateur révision** | Vérifie les cartes Leitner en retard, propose un plan |
+| **Quiz interactif HTML** | CSS/JS intégré, sélection d'options, score instantané |
+| **Cloud models** | Factory `get_llm()` — Ollama local ou distant via `OLLAMA_BASE_URL` |
 
 ### Base de données SQLite
 
@@ -62,20 +85,20 @@ START → router → (diagnostic? | retrieve) → method → (tool → evaluate 
 | `mastery` | Score + boîte Leitner + date prochaine révision |
 | `document` | PDFs uploadés |
 | `chunk` | Segments indexés |
-| `session` | Sessions de conversation |
+| `session` | Sessions de conversation (UUID thread_id) |
 | `message` | Messages utilisateur/assistant |
 | `quiz_attempt` | Tentatives de quiz |
 | `feynman_restitution` | Évaluations Feynman |
 
 ### Répétition espacée (Leitner)
 
-6 boîtes (0-5) avec intervalles croissants :
+6 boîtes (0-5) avec intervalles non-linéaires :
 - Box 0 : immédiat
 - Box 1 : 1 jour
-- Box 2 : 3 jours
-- Box 3 : 7 jours
-- Box 4 : 15 jours
-- Box 5 : 45 jours
+- Box 2 : 2 jours
+- Box 3 : 5 jours
+- Box 4 : 10 jours
+- Box 5 : 21 jours
 
 Score ≥ 0.7 → promotion | Score < 0.4 → rétrogradation
 
@@ -83,7 +106,7 @@ Score ≥ 0.7 → promotion | Score < 0.4 → rétrogradation
 
 ```bash
 # Cloner
-git clone <repo-url>
+git clone https://github.com/idrissoualanni/agent-apprentissage.git
 cd agent-apprentissage
 
 # Virtual environment
@@ -95,7 +118,7 @@ source venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 
 # Configuration
-cp .env.example .env  # ou editer .env directement
+cp .env.example .env  # ou éditer .env directement
 
 # Lancer Ollama
 ollama serve
@@ -109,7 +132,13 @@ streamlit run app.py
 ```env
 OLLAMA_MODEL=qwen2.5:1.5b
 OLLAMA_EMBEDDING_MODEL=qwen3-embedding:0.6b
+OLLAMA_NUM_GPU=0
 AVAILABLE_MODELS=qwen2.5:1.5b,qwen2.5-coder:3b
+
+# Ollama distant (optionnel)
+OLLAMA_BASE_URL=
+OLLAMA_API_KEY=
+
 CHUNK_SIZE=1000
 CHUNK_OVERLAP=200
 TOP_K=3
@@ -127,8 +156,8 @@ ollama pull qwen3-embedding:0.6b   # Embeddings
 
 | Page | Description |
 |---|---|
-| **Chat** | Interface conversationnelle avec le tuteur IA |
-| **Dashboard** | KPIs progression + graphique barres |
+| **Chat** | Interface conversationnelle avec tuteur IA + renderers HTML interactifs |
+| **Dashboard** | KPIs progression + graphique barres (Plotly) |
 | **Import PDF** | Upload + indexation de documents |
 | **Profil** | Domaine, niveau, compétences |
 | **DB** | Explorateur de tables + checkpoints LangGraph |

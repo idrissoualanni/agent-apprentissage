@@ -2,10 +2,10 @@
 
 import json
 from langchain.tools import tool
-from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 
 import config
+from llm import get_llm
 
 QUIZ_PROMPT = ChatPromptTemplate.from_messages([
     ("system", """Tu es un expert pedagogique. Genere un quiz de {nb_questions} questions sur la competence suivante :
@@ -43,7 +43,7 @@ def generate_quiz(competency_name: str, context: str,
     Returns:
         JSON string contenant les questions du quiz avec options et index correct
     """
-    llm = ChatOllama(model=config.OLLAMA_MODEL, temperature=0.5)
+    llm = get_llm(model=config.OLLAMA_MODEL, temperature=0.5)
 
     messages = QUIZ_PROMPT.format_messages(
         nb_questions=nb_questions,

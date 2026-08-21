@@ -2,10 +2,10 @@
 
 import json
 from langchain.tools import tool
-from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 
 import config
+from llm import get_llm
 
 ARTIFACT_PROMPT = ChatPromptTemplate.from_messages([
     ("system", """Tu es un créateur de supports pédagogiques. Génère un artefact de type {artifact_type} sur la notion suivante.
@@ -46,7 +46,7 @@ def create_artifact(topic: str, context: str, artifact_type: str = "schema",
     Returns:
         JSON string avec type, title, content (Markdown), format
     """
-    llm = ChatOllama(model=config.OLLAMA_MODEL, temperature=0.5)
+    llm = get_llm(model=config.OLLAMA_MODEL, temperature=0.5)
 
     messages = ARTIFACT_PROMPT.format_messages(
         artifact_type=artifact_type,

@@ -21,3 +21,6 @@ plotly
 
 # Utilitaires
 python-dotenv
+
+# Recherche web
+ddgs

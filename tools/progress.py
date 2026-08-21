@@ -138,6 +138,40 @@ def get_progress_summary(domain: str) -> str:
     }, ensure_ascii=False)
 
 
+@tool
+def get_revision_plan(domain: str = "") -> str:
+    """Génère un plan de révision basé sur les compétences en retard (Leitner).
+
+    Args:
+        domain: Domaine d'apprentissage (optionnel, filtre si fourni)
+
+    Returns:
+        JSON string avec plan de révision ordonné par urgence
+    """
+    due = db.get_due_for_review(config.DB_PATH)
+    # Filtrer par domaine si fourni
+    if domain:
+        due = [c for c in due if c.get("domain") == domain]
+    if not due:
+        return json.dumps({"plan": [], "message": "Aucune revision necessaire aujourd'hui."}, ensure_ascii=False)
+
+    plan = [
+        {
+            "competency_id": c["id"],
+            "nom": c["nom"],
+            "score": c["score"],
+            "leitner_box": c["leitner_box"],
+            "next_review": c["next_review_at"],
+        }
+        for c in due[:5]
+    ]
+    return json.dumps({
+        "plan": plan,
+        "total_due": len(due),
+        "message": f"{len(plan)} compétence(s) à réviser sur {len(due)} en retard.",
+    }, ensure_ascii=False)
+
+
 # ─── Helpers internes (pas des tools) ─────────────────────────────────────
 
 def _compute_status(score: float, leitner_box: int) -> str:

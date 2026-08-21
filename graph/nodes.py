@@ -3,7 +3,6 @@
 import json
 from typing import Optional
 from graph.state import AgentState
-from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from tools.quiz import generate_quiz, evaluate_answer
@@ -11,6 +10,8 @@ from tools.feynman import evaluate_feynman
 from tools.progress import update_mastery_after_quiz, update_mastery_after_feynman
 from tools.artifact import create_artifact
 from db import db
+import config
+from llm import get_llm
 
 # ─── Prompt templates ─────────────────────────────────────────────────────
 
@@ -84,30 +85,121 @@ def format_docs(documents) -> str:
 
 # ─── Nœuds ────────────────────────────────────────────────────────────────
 
+def _is_meta_question(question: str) -> bool:
+    """Détecte si la question est une salutation, question méta, ou hors-sujet pédagogique.
+    
+    Retourne True si le RAG n'est pas nécessaire (pas de retrieval de contexte).
+    Stratégie : liste de patterns + longueur + scoring — pas d'appel LLM.
+    """
+    q = question.lower().strip()
+    
+    # Patterns de salutations / méta / ack
+    META_PATTERNS = [
+        # Salutations
+        r"^(salut|bonjour|bonsoir|coucou|hello|hi|hey|yo|wesh)\s*[!.?]*$",
+        r"^(bonne\s*journée|bonne\s*soirée|à\s*bientôt|au\s*revoir|bye|ciao)\s*[!.?]*$",
+        # Questions méta sur l'agent
+        r"^(qui\s*es[- ]tu|que\s*sais[- ]tu|tu\s*sais\s*faire|t['\u2019]es\s*un\s*bot)",
+        r"^(quel\s*est\s*ton\s*(nom|rôle|but|objectif))",
+        # Ack / remerciements courts
+        r"^(merci|thanks|super|bien|ok|parfait|excellent|genial|bravo|top|cool)\s*[!.?]*$",
+        r"^(oui|non|peut[- ]être|jsp|bof)\s*[!.?]*$",
+        # Phrases trop courtes pour nécessiter du RAG (< 4 mots sans pointeur pédagogique)
+    ]
+    
+    import re
+    for pattern in META_PATTERNS:
+        if re.match(pattern, q):
+            return True
+    
+    # Si la phrase fait < 4 mots ET ne contient aucun mot-clé pédagogique → meta
+    words = q.split()
+    PEDAGOGICAL_HINTS = [
+        "explique", "comprendre", "pourquoi", "comment", "qu'est-ce", "quel", "quelle",
+        "donne", "montre", "défini", "exemple", "résumé", "révise", "apprend",
+        "quiz", "test", "éval", "notion", "concept", "théorie", "cours",
+    ]
+    if len(words) < 4 and not any(h in q for h in PEDAGOGICAL_HINTS):
+        return True
+    
+    return False
+
+
+def _needs_web_search(question: str) -> bool:
+    """Détecte si la question nécessite une recherche web (actualités, prix, stats, etc.)."""
+    import re
+    q = question.lower().strip()
+    WEB_PATTERNS = [
+        r"(prix|cours|taux|valeur|chiffre)\s+(du|de la|des|d')",
+        r"(dernière?|nouveau|récent|actuel|aujourd'hui|ce\s+mois|cette\s+année)",
+        r"(actualité|news|événement|sommert|breaking)",
+        r"(combien\s+coûte|quel\s+prix|que\s+vaut)",
+        r"(stock|action|crypto|bitcoin|ethereum)",
+        r"(météo|weather|température)",
+        r"(score|résultat|match|coupe|championnat)",
+    ]
+    for pattern in WEB_PATTERNS:
+        if re.search(pattern, q):
+            return True
+    return False
+
+
+def _needs_revision(question: str) -> bool:
+    """Détecte si l'utilisateur demande une révision / rappel."""
+    import re
+    q = question.lower().strip()
+    REVISION_PATTERNS = [
+        r"\br[ée]vis",
+        r"\brevision",
+        r"\brévision",
+        r"\brappel",
+        r"\brevoir\b",
+        r"\brattrap",
+        r"\bexercice.*r[ée]vis",
+        r"\bqu.*r[ée]viser",
+        r"\bque.*dois.*r[ée]viser",
+        r"\bplan.*r[ée]vision",
+        r"\bcarte.*mémoire",
+    ]
+    for pattern in REVISION_PATTERNS:
+        if re.search(pattern, q):
+            return True
+    return False
+
+
 def router_profil_node(state: AgentState, retriever, model_name: str, db_path=None) -> dict:
-    """Charge le profil et décide du premier routing (diagnostic vs retrieval)."""
+    """Charge le profil et décide du premier routing (diagnostic vs retrieval).
+    
+    Détecte aussi les questions méta/salutations pour court-circuiter le RAG.
+    """
     profile = db.get_profile(db_path)
     domain = profile.get("domain", "")
-
+    question = state.get("question", "")
+    
+    # Détecter les questions méta (salutations, ack, etc.)
+    is_meta = _is_meta_question(question)
+    
     # Si pas de domaine défini, mode diagnostic
     if not domain:
         return {
             "learner_profile": profile,
             "method": "diagnostic",
             "active_competency": None,
+            "rag_needed": not is_meta,
         }
-
-    # Sinon, on va vers retrieval (pas de double appel ici)
+    
+    # Sinon, on va vers retrieval (ou pas si méta)
     return {
         "learner_profile": profile,
         "method": "scaffold",  # par défaut, sera affiné par method_selection
         "active_competency": None,
+        "rag_needed": not is_meta,
     }
 
 
 def diagnostic_node(state: AgentState, model_name: str, db_path=None) -> dict:
     """Pose des questions de diagnostic si le profil est incomplet."""
-    llm = ChatOllama(model=model_name, temperature=0.3)
+    llm = get_llm(model=model_name, temperature=0.3)
     domain = state["learner_profile"].get("domain", "ce domaine")
 
     messages = DIAGNOSTIC_PROMPT.format_messages(
@@ -283,6 +375,10 @@ def method_selection_node(state: AgentState, db_path=None) -> dict:
         method = "quiz"
     elif state.get("feynman_explanation"):
         method = "feynman"
+    elif _needs_revision(state.get("question", "")):
+        method = "revision"
+    elif _needs_web_search(state.get("question", "")):
+        method = "web_search"
     elif level in ("debutant", ""):
         method = "scaffold"
     elif level == "intermediaire":
@@ -300,10 +396,10 @@ def generate_node(state: AgentState, model_name: str) -> dict:
     on la garde telle quelle — pas de re-génération.
     """
     # Si le tool a déjà produit une réponse, la conserver
-    if state.get("answer") and state.get("method") in ("quiz", "feynman", "artifact"):
+    if state.get("answer") and state.get("method") in ("quiz", "feynman", "artifact", "web_search", "revision"):
         return {}
 
-    llm = ChatOllama(model=model_name, temperature=0.3)
+    llm = get_llm(model=model_name, temperature=0.3)
     method = state.get("method", "scaffold")
     context = state.get("context", "")
     competency = state.get("active_competency", "ce sujet")
@@ -388,6 +484,36 @@ def tool_execution_node(state: AgentState, model_name: str) -> dict:
                 "awaiting_feynman_explanation": True,
             }
 
+    elif tool == "web_search":
+        from tools.web_search import web_search
+        # La requête de recherche = la question de l'utilisateur
+        result_str = web_search.invoke({"query": state["question"], "num_results": 3})
+        results = json.loads(result_str)
+        if isinstance(results, dict) and "error" in results:
+            return {"answer": f"Erreur de recherche web : {results['error']}"}
+        # Formatter les résultats
+        lines = ["### Résultats web\n"]
+        for i, r in enumerate(results, 1):
+            lines.append(f"**{i}. [{r['title']}]({r['url']})**")
+            lines.append(f"{r['snippet']}\n")
+        return {"answer": "\n".join(lines)}
+
+    elif tool == "revision":
+        from tools.progress import get_revision_plan
+        domain = state.get("learner_profile", {}).get("domain", "")
+        result_str = get_revision_plan.invoke({"domain": domain})
+        result = json.loads(result_str)
+        plan = result.get("plan", [])
+        if not plan:
+            return {"answer": result.get("message", "Aucune révision nécessaire. ✅")}
+        lines = [f"### 📅 Plan de révision — {result.get('message','')}\n"]
+        for i, item in enumerate(plan, 1):
+            lines.append(f"**{i}. {item['nom']}** — box {item['leitner_box']}, score {item['score']:.0%}")
+            lines.append(f"   Prochaine révision : {item['next_review']}\n")
+        if result.get("total_due", 0) > len(plan):
+            lines.append(f"_…et {result['total_due'] - len(plan)} autre(s) en attente._")
+        return {"answer": "\n".join(lines)}
+
     elif tool == "artifact":
         artifact_type = state.get("tool_result", "schema")
         level = state.get("estimated_level",
@@ -406,6 +532,51 @@ def tool_execution_node(state: AgentState, model_name: str) -> dict:
         return {"answer": answer_md}
 
     return {"answer": ""}
+
+
+def confirmation_node(state: AgentState) -> dict:
+    """Human-in-the-loop : demande confirmation avant d'exécuter un outil lourd.
+    
+    Si user_confirmed=None et method nécessite confirmation → met pending_confirmation=True.
+    Si user_confirmed=True → on continue (clear pending).
+    Si user_confirmed=False → on annule l'action.
+    """
+    method = state.get("method", "")
+    user_confirmed = state.get("user_confirmed")
+    
+    # Méthodes nécessitant une confirmation
+    CONFIRMATION_METHODS = {
+        "quiz": "Je vais te préparer un quiz. Tu es prêt(e) ?",
+        "feynman": "On va tester ta compréhension avec la méthode Feynman. C'est parti ?",
+        "artifact": "Je vais créer un artefact pédagogique pour t'aider. On y va ?",
+    }
+    
+    # Si pas encore répondu et méthode lourde → demander confirmation
+    if user_confirmed is None and method in CONFIRMATION_METHODS:
+        return {
+            "pending_confirmation": True,
+            "confirmation_type": method,
+            "confirmation_prompt": CONFIRMATION_METHODS[method],
+        }
+    
+    # Si confirmé → on continue (clear pending_confirmation)
+    if user_confirmed is True:
+        return {
+            "pending_confirmation": False,
+            "user_confirmed": None,  # reset pour le prochain tour
+        }
+    
+    # Si annulé → on arrête l'action
+    if user_confirmed is False:
+        return {
+            "pending_confirmation": False,
+            "user_confirmed": None,
+            "method": "scaffold",  # fallback vers réponse normale
+            "answer": "Pas de souci, on fait autre chose ! Pose-moi une question.",
+        }
+    
+    # Pas de confirmation nécessaire (method = scaffold, socratic, etc.)
+    return {}
 
 
 def evaluation_memory_node(state: AgentState, db_path=None) -> dict:

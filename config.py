@@ -10,10 +10,18 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:1.5b")
 OLLAMA_EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL", "qwen3-embedding:0.6b")
 
+# Nombre de couches GPU à utiliser (0 = CPU only, -1 = auto)
+# Utile quand le GPU Vulkan n'a pas assez de VRAM (OOM)
+OLLAMA_NUM_GPU = int(os.getenv("OLLAMA_NUM_GPU", "0"))
+
+# ─── Ollama distant ────────────────────────────────────────────────────────
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "")  # vide = localhost:11434
+OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", "")     # vide = pas d'auth
+
 # ─── Modeles disponibles (separes par virgule) ────────────────────────────
 _available_raw = os.getenv(
     "AVAILABLE_MODELS",
-    "qwen2.5:1.5b,qwen2.5-coder:3b,minimax-m3:cloud,qwen3.5:cloud",
+    "qwen2.5:1.5b,qwen2.5-coder:3b",
 )
 AVAILABLE_MODELS = [m.strip() for m in _available_raw.split(",") if m.strip()]
 

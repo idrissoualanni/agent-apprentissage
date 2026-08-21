@@ -2,10 +2,10 @@
 
 import json
 from langchain.tools import tool
-from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 
 import config
+from llm import get_llm
 
 FEYNMAN_PROMPT = ChatPromptTemplate.from_messages([
     ("system", """Tu evalues une restitution Feynman -- l'utilisateur explique une notion avec ses propres mots.
@@ -45,7 +45,7 @@ def evaluate_feynman(topic: str, context: str, explanation: str) -> str:
     Returns:
         JSON string avec score (0-1), evaluation, gaps, strengths, feedback
     """
-    llm = ChatOllama(model=config.OLLAMA_MODEL, temperature=0.2)
+    llm = get_llm(model=config.OLLAMA_MODEL, temperature=0.2)
 
     messages = FEYNMAN_PROMPT.format_messages(
         topic=topic,

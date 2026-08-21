@@ -14,6 +14,7 @@ class AgentState(TypedDict):
     chat_history: Sequence[BaseMessage]
 
     # Contexte RAG
+    rag_needed: bool  # False = question méta/salutation, skip retrieval
     context: str
 
     # Profil apprenant (chargé depuis SQLite)
@@ -46,6 +47,12 @@ class AgentState(TypedDict):
     # Évaluation & progression
     evaluation_score: Optional[float]
     leitner_action: Optional[str]  # "promote", "demote", "stay"
+
+    # Human-in-the-loop : confirmation avant action lourde
+    pending_confirmation: bool  # True = le graph attend une confirmation utilisateur
+    confirmation_type: Optional[str]  # "quiz", "feynman", "artifact"
+    confirmation_prompt: Optional[str]  # Message affiché à l'utilisateur
+    user_confirmed: Optional[bool]  # True = confirmé, False = annulé, None = pas encore répondu
 
     # Réponse finale
     answer: str
