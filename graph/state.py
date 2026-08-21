@@ -35,6 +35,7 @@ class AgentState(TypedDict):
     # Feynman
     feynman_topic: Optional[str]
     feynman_explanation: Optional[str]
+    awaiting_feynman_explanation: bool  # True = prochaine réponse = explication Feynman
     feynman_score: Optional[float]
     feynman_gaps: Optional[str]
 

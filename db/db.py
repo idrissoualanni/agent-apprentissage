@@ -107,22 +107,19 @@ def get_mastery(competency_id: int, db_path: Optional[Path] = None) -> Optional[
 
 
 def upsert_mastery(competency_id: int, score: float, leitner_box: int = 0,
-                    status: str = "new", db_path: Optional[Path] = None) -> None:
+                    status: str = "new", next_review_at: Optional[str] = None,
+                    db_path: Optional[Path] = None) -> None:
     with get_connection(db_path) as conn:
         conn.execute("""
-            INSERT INTO mastery (competency_id, score, leitner_box, status)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO mastery (competency_id, score, leitner_box, status, next_review_at)
+            VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(competency_id) DO UPDATE SET
                 score = excluded.score,
                 leitner_box = excluded.leitner_box,
                 status = excluded.status,
                 last_reviewed_at = datetime('now'),
-                next_review_at = CASE
-                    WHEN excluded.leitner_box > mastery.leitner_box
-                    THEN datetime('now', '+' || (excluded.leitner_box * 2) || ' days')
-                    ELSE next_review_at
-                END
-        """, (competency_id, score, leitner_box, status))
+                next_review_at = excluded.next_review_at
+        """, (competency_id, score, leitner_box, status, next_review_at))
 
 
 def get_mastery_overview(domain: str, db_path: Optional[Path] = None) -> list[dict]:

@@ -2,6 +2,7 @@
 
 import streamlit as st
 import json
+import uuid
 from pathlib import Path
 
 import config
@@ -89,6 +90,12 @@ def _get_agent_graph(model_name: str):
 # ═══════════════════════════════════════════════════════════════════════════════
 # SESSION MANAGEMENT
 # ═══════════════════════════════════════════════════════════════════════════════
+
+def _create_new_session(model_name: str, domain: str) -> int:
+    """Crée une nouvelle session avec un thread_id unique (UUID)."""
+    thread_id = f"agent_{model_name}_{domain}_{uuid.uuid4().hex[:8]}"
+    return db.create_session(thread_id, config.DB_PATH)
+
 
 def _get_or_create_session(thread_id: str) -> int:
     """Récupère ou crée une session par thread_id."""
@@ -227,8 +234,7 @@ with st.sidebar:
     if st.button(":material/add: Nouvelle session", width="stretch", key="new_session"):
         profile = db.get_profile(config.DB_PATH)
         domain = profile.get("domain", "default")
-        thread_id = f"agent_{selected_model}_{domain}"
-        session_id = _get_or_create_session(thread_id)
+        session_id = _create_new_session(selected_model, domain)
         st.session_state.active_session_id = session_id
         st.session_state.messages = []
         st.rerun()
@@ -275,9 +281,8 @@ if st.session_state.nav_page == "chat":
     if not st.session_state.active_session_id:
         profile = db.get_profile(config.DB_PATH)
         domain = profile.get("domain", "default")
-        thread_id = f"agent_{selected_model}_{domain}"
-        st.session_state.active_session_id = _get_or_create_session(thread_id)
-        st.session_state.messages = _load_session_messages(st.session_state.active_session_id)
+        st.session_state.active_session_id = _create_new_session(selected_model, domain)
+        st.session_state.messages = []
 
     messages = st.session_state.messages
 
@@ -322,7 +327,13 @@ if st.session_state.nav_page == "chat":
                 st.write(f":material/model_training: Modele: `{selected_model}`")
                 st.write(":material/search: Recherche dans les documents...")
 
-                thread_id = f"agent_{selected_model}_{domain}"
+                # Récupérer le thread_id depuis la session active
+                with db.get_connection(config.DB_PATH) as conn:
+                    row = conn.execute(
+                        "SELECT langgraph_thread_id FROM session WHERE id = ?",
+                        (st.session_state.active_session_id,),
+                    ).fetchone()
+                    thread_id = row["langgraph_thread_id"] if row else f"agent_{selected_model}_{uuid.uuid4().hex[:8]}"
                 thread_config = {"configurable": {"thread_id": thread_id}}
 
                 try:

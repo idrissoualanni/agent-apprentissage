@@ -48,7 +48,9 @@ def update_mastery_after_quiz(competency_id: int, is_correct: bool) -> str:
 
         status = _compute_status(score, leitner_box)
 
-    db.upsert_mastery(competency_id, score, leitner_box, status, config.DB_PATH)
+    db.upsert_mastery(competency_id, score, leitner_box, status,
+                       next_review_at=_next_review(leitner_box),
+                       db_path=config.DB_PATH)
 
     return json.dumps({
         "score": round(score, 2),
@@ -84,7 +86,9 @@ def update_mastery_after_feynman(competency_id: int, score: float) -> str:
             leitner_box = max(0, leitner_box - 1)
 
     status = _compute_status(score, leitner_box)
-    db.upsert_mastery(competency_id, score, leitner_box, status, config.DB_PATH)
+    db.upsert_mastery(competency_id, score, leitner_box, status,
+                       next_review_at=_next_review(leitner_box),
+                       db_path=config.DB_PATH)
 
     return json.dumps({
         "score": round(score, 2),

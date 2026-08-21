@@ -166,10 +166,118 @@ def retrieval_node(state: AgentState, retriever) -> dict:
     return {"context": format_docs(docs)}
 
 
-def method_selection_node(state: AgentState) -> dict:
-    """Choisit la méthode pédagogique selon le niveau et l'historique."""
+def _detect_active_competency(question: str, domain: str, db_path) -> Optional[str]:
+    """Détecte la compétence la plus pertinente depuis la question (matching simple).
+    
+    Stratégie : matching mots-clés sur nom + description des compétences du domaine.
+    Pas d'appel LLM pour éviter la latence à chaque tour.
+    """
+    if not domain:
+        return None
+    from db import db as db_module
+    comps = db_module.get_competencies(domain, db_path)
+    if not comps:
+        return None
+    
+    question_lower = question.lower()
+    best_match = None
+    best_score = 0
+    
+    for comp in comps:
+        score = 0
+        nom_lower = comp["nom"].lower()
+        desc_lower = (comp.get("description") or "").lower()
+        
+        # Match exact sur le nom (poids fort)
+        if nom_lower in question_lower:
+            score += 10
+        # Match mots du nom
+        for word in nom_lower.split():
+            if len(word) > 3 and word in question_lower:
+                score += 2
+        # Match description
+        for word in desc_lower.split():
+            if len(word) > 4 and word in question_lower:
+                score += 1
+        
+        if score > best_score:
+            best_score = score
+            best_match = comp["nom"]
+    
+    return best_match if best_score >= 2 else None
+
+
+def answer_processing_node(state: AgentState, db_path=None) -> dict:
+    """Traite la réponse utilisateur si on attend une réponse quiz ou une explication Feynman.
+    
+    Ce nœud doit s'exécuter AVANT method_selection_node pour capturer la réponse
+    et la router vers l'évaluation au lieu de générer un nouveau quiz/explication.
+    """
+    updates = {}
+    
+    # --- Cas 1 : Réponse à un quiz en attente ---
+    if state.get("quiz_active") and state.get("quiz_questions"):
+        # L'utilisateur répond au quiz, pas une nouvelle question
+        from tools.quiz import evaluate_answer
+        import json
+        
+        # On suppose que la réponse est l'index choisi (0-3) ou le texte de l'option
+        user_input = state["question"].strip()
+        
+        # Essayer de parser comme index
+        try:
+            user_idx = int(user_input) - 1  # Utilisateur 1-based, interne 0-based
+        except ValueError:
+            # Sinon, matcher contre les options
+            q = state["quiz_questions"][0]
+            options = q.get("options", [])
+            user_idx = -1
+            for i, opt in enumerate(options):
+                if opt.lower() in user_input.lower() or user_input.lower() in opt.lower():
+                    user_idx = i
+                    break
+        
+        if user_idx >= 0:
+            q = state["quiz_questions"][0]
+            result_str = evaluate_answer.invoke({
+                "question": q["question"],
+                "options": ",".join(q.get("options", [])),
+                "correct_index": q.get("correct_index", 0),
+                "user_answer_index": user_idx,
+            })
+            result = json.loads(result_str)
+            
+            updates.update({
+                "evaluation_score": 1.0 if result["is_correct"] else 0.0,
+                "quiz_active": False,
+                "quiz_questions": [],
+                "answer": f"{'✅ Correct !' if result['is_correct'] else '❌ Incorrect.'} La bonne réponse était : {result['correct_option']}",
+            })
+        else:
+            # Réponse non reconnue, on garde quiz_active pour réessayer
+            updates["answer"] = "Je n'ai pas compris votre réponse. Veuillez indiquer le numéro (1-4) ou le texte de l'option choisie."
+    
+    # --- Cas 2 : Explication Feynman attendue ---
+    elif state.get("awaiting_feynman_explanation") and not state.get("feynman_explanation"):
+        # L'utilisateur fournit son explication
+        updates.update({
+            "feynman_explanation": state["question"],
+            "awaiting_feynman_explanation": False,
+        })
+    
+    return updates
+
+
+def method_selection_node(state: AgentState, db_path=None) -> dict:
+    """Choisit la méthode pédagogique selon le niveau, l'historique et la compétence active."""
     profile = state.get("learner_profile", {})
     level = profile.get("niveau_global", "")
+    domain = profile.get("domain", "")
+
+    # Détecter la compétence active depuis la question (si pas déjà en quiz/feynman)
+    active_competency = state.get("active_competency")
+    if not active_competency and not state.get("quiz_active") and not state.get("feynman_explanation"):
+        active_competency = _detect_active_competency(state["question"], domain, db_path)
 
     if state.get("quiz_active"):
         method = "quiz"
@@ -182,7 +290,7 @@ def method_selection_node(state: AgentState) -> dict:
     else:
         method = "feynman"
 
-    return {"method": method}
+    return {"method": method, "active_competency": active_competency}
 
 
 def generate_node(state: AgentState, model_name: str) -> dict:
@@ -274,8 +382,10 @@ def tool_execution_node(state: AgentState, model_name: str) -> dict:
                 "answer": result.get("feedback", "Bien essayé !"),
             }
         else:
+            # On demande l'explication, marquer qu'on l'attend au tour suivant
             return {
                 "answer": f"Explique-moi '{competency}' comme si j'avais 12 ans. Utilise tes propres mots.",
+                "awaiting_feynman_explanation": True,
             }
 
     elif tool == "artifact":
@@ -335,7 +445,7 @@ def evaluation_memory_node(state: AgentState, db_path=None) -> dict:
                 )
 
     # --- Évaluation Quiz ---
-    elif state.get("evaluation_score") is not None and state.get("quiz_active"):
+    elif state.get("evaluation_score") is not None:
         competency_name = state.get("active_competency")
         is_correct = state["evaluation_score"] >= 0.6
 
@@ -348,6 +458,23 @@ def evaluation_memory_node(state: AgentState, db_path=None) -> dict:
             })
             result = json.loads(result_str)
             updates["leitner_action"] = "promote" if is_correct else "demote"
+
+            # Enregistrer la tentative de quiz
+            session_id = _resolve_session_id(db_path)
+            if session_id is not None:
+                from db import db as db_module
+                quiz_questions = state.get("quiz_questions", [])
+                if quiz_questions:
+                    q = quiz_questions[0]
+                    db_module.record_quiz_attempt(
+                        competency_id=competency_id,
+                        question=q.get("question", ""),
+                        options=",".join(q.get("options", [])),
+                        user_answer=str(state.get("answer", "")),
+                        is_correct=is_correct,
+                        session_id=session_id,
+                        db_path=db_path,
+                    )
 
             # Enregistrer la tentative de quiz
             session_id = _resolve_session_id(db_path)
