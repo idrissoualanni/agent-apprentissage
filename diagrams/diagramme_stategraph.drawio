@@ -1,0 +1,202 @@
+<mxfile host="Electron" agent="drawio">
+  <diagram id="stategraph" name="StateGraph Agent V3">
+    <mxGraphModel dx="2400" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Titre -->
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=16;fontStyle=1;align=center;fillColor=#f5f5f5;strokeColor=#666666;rounded=1;" value="StateGraph — Agent d'Apprentissage V3&#xa;LangGraph + ModelManager + SQLite V3" vertex="1">
+          <mxGeometry height="50" width="380" x="610" y="10" as="geometry" />
+        </mxCell>
+
+        <!-- START -->
+        <mxCell id="start" parent="1" style="shape=mxgraph.flowchart.terminator;fillColor=#000000;fontColor=#FFFFFF;strokeColor=#000000;fontSize=12;fontStyle=1;" value="START" vertex="1">
+          <mxGeometry height="50" width="100" x="40" y="200" as="geometry" />
+        </mxCell>
+
+        <!-- router_profil -->
+        <mxCell id="router" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;arcSize=40;" value="router_profil&#xa;&#xa;Charge profile + competencies&#xa;Injecte model_manager" vertex="1">
+          <mxGeometry height="100" width="180" x="220" y="175" as="geometry" />
+        </mxCell>
+
+        <!-- answer_processing (V3 NOUVEAU) -->
+        <mxCell id="answer" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;arcSize=40;strokeWidth=3;" value="answer_processing&#xa;&#xa;Parse user responses&#xa;Detect quiz/feynman/artifact&#xa;Extract user_id" vertex="1">
+          <mxGeometry height="100" width="180" x="220" y="40" as="geometry" />
+        </mxCell>
+
+        <!-- diamond1: diagnostic? -->
+        <mxCell id="diamond1" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="method =&#xa;diagnostic?" vertex="1">
+          <mxGeometry height="70" width="120" x="480" y="190" as="geometry" />
+        </mxCell>
+
+        <!-- diagnostic -->
+        <mxCell id="diagnostic" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;arcSize=40;" value="diagnostic&#xa;&#xa;Questions diagnostic&#xa;+ estimation level&#xa;+ upsert mastery" vertex="1">
+          <mxGeometry height="90" width="160" x="480" y="60" as="geometry" />
+        </mxCell>
+
+        <!-- retrieve -->
+        <mxCell id="retrieve" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;arcSize=40;" value="retrieve&#xa;&#xa;RAG retrieval&#xa;ChromaDB top_k&#xa;langchain-chroma" vertex="1">
+          <mxGeometry height="90" width="160" x="480" y="330" as="geometry" />
+        </mxCell>
+
+        <!-- method_selection (rhombus) -->
+        <mxCell id="method" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" value="method_selection&#xa;&#xa;Choix methode pedagogique" vertex="1">
+          <mxGeometry height="90" width="180" x="710" y="325" as="geometry" />
+        </mxCell>
+
+        <!-- diamond2: needs tool? -->
+        <mxCell id="diamond2" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="method in&#xa;(quiz, feynman,&#xa;artifact)?" vertex="1">
+          <mxGeometry height="80" width="130" x="960" y="330" as="geometry" />
+        </mxCell>
+
+        <!-- confirmation (V3 NOUVEAU) -->
+        <mxCell id="confirm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c2185b;fontSize=11;arcSize=40;strokeWidth=3;" value="confirmation&#xa;&#xa;Confirme avec apprenant&#xa;quiz / feynman / artifact&#xa;Attend acceptation" vertex="1">
+          <mxGeometry height="90" width="160" x="960" y="450" as="geometry" />
+        </mxCell>
+
+        <!-- tool_execution -->
+        <mxCell id="tool" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;arcSize=40;" value="tool_execution&#xa;&#xa;generate_quiz / evaluate_feynman&#xa;create_artifact&#xa;+ tool_transparency log" vertex="1">
+          <mxGeometry height="90" width="180" x="960" y="570" as="geometry" />
+        </mxCell>
+
+        <!-- evaluation_memory -->
+        <mxCell id="evaluate" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;arcSize=40;" value="evaluation_memory&#xa;&#xa;Ecrit quiz_attempts&#xa;+ feynman_restitutions&#xa;+ update mastery&#xa;+ tool_usage log" vertex="1">
+          <mxGeometry height="90" width="180" x="1200" y="570" as="geometry" />
+        </mxCell>
+
+        <!-- generate_response (ModelManager) -->
+        <mxCell id="generate" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;arcSize=40;" value="generate_response&#xa;&#xa;ModelManager.get_llm()&#xa;Operation-specific model&#xa;+ formatage reponse&#xa;+ ToolBadge" vertex="1">
+          <mxGeometry height="90" width="180" x="1050" y="175" as="geometry" />
+        </mxCell>
+
+        <!-- END -->
+        <mxCell id="end" parent="1" style="shape=mxgraph.flowchart.terminator;fillColor=#000000;fontColor=#FFFFFF;strokeColor=#000000;fontSize=12;fontStyle=1;" value="END" vertex="1">
+          <mxGeometry height="50" width="100" x="1340" y="200" as="geometry" />
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" edge="1" parent="1" source="start" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333333;" target="router">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_router_answer" edge="1" parent="1" source="router" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;dashed=1;" target="answer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="answer" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#6c8ebf;" target="diamond1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="310" y="140" />
+              <mxPoint x="310" y="225" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="diamond1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#b85450;fontStyle=1;fontSize=11;" target="diagnostic" value="oui">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="diagnostic" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#b85450;dashed=1;" target="generate">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="105" />
+              <mxPoint x="1030" y="105" />
+              <mxPoint x="1030" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="diamond1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;fontStyle=1;fontSize=11;" target="retrieve" value="non">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="retrieve" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#82b366;" target="method">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="method" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#9673a6;" target="diamond2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="diamond2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#c2185b;fontStyle=1;fontSize=11;" target="confirm" value="oui">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_conf_tool" edge="1" parent="1" source="confirm" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#c2185b;dashed=1;" target="tool">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="tool" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#d79b00;" target="evaluate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="evaluate" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;" target="generate">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1290" y="350" />
+              <mxPoint x="1140" y="350" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="diamond2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" target="generate" value="non">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="generate" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#333333;" target="end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- LEGENDE -->
+        <mxCell id="legend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontSize=10;" value="" vertex="1">
+          <mxGeometry height="220" width="350" x="40" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" parent="1" style="text;html=1;fontSize=12;fontStyle=1;align=left;" value="LEGENDE V3" vertex="1">
+          <mxGeometry height="20" width="100" x="50" y="425" as="geometry" />
+        </mxCell>
+        <mxCell id="l1" parent="1" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="50" y="455" as="geometry" />
+        </mxCell>
+        <mxCell id="l1t" parent="1" style="text;html=1;fontSize=10;align=left;" value="Noeuds LLM (ModelManager)" vertex="1">
+          <mxGeometry height="20" width="180" x="75" y="453" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" parent="1" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="50" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="l2t" parent="1" style="text;html=1;fontSize=10;align=left;" value="RAG Retrieval (ChromaDB + langchain-chroma)" vertex="1">
+          <mxGeometry height="20" width="250" x="75" y="478" as="geometry" />
+        </mxCell>
+        <mxCell id="l3" parent="1" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="50" y="505" as="geometry" />
+        </mxCell>
+        <mxCell id="l3t" parent="1" style="text;html=1;fontSize=10;align=left;" value="Selection methode (rhombus)" vertex="1">
+          <mxGeometry height="20" width="180" x="75" y="503" as="geometry" />
+        </mxCell>
+        <mxCell id="l4" parent="1" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="50" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="l4t" parent="1" style="text;html=1;fontSize=10;align=left;" value="Tools + Evaluation (SQLite V3)" vertex="1">
+          <mxGeometry height="20" width="180" x="75" y="528" as="geometry" />
+        </mxCell>
+        <mxCell id="l5" parent="1" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="50" y="555" as="geometry" />
+        </mxCell>
+        <mxCell id="l5t" parent="1" style="text;html=1;fontSize=10;align=left;" value="Diagnostic (premier contact)" vertex="1">
+          <mxGeometry height="20" width="180" x="75" y="553" as="geometry" />
+        </mxCell>
+        <mxCell id="l6" parent="1" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;strokeWidth=3;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="50" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="l6t" parent="1" style="text;html=1;fontSize=10;align=left;" value="answer_processing (V3 NOUVEAU)" vertex="1">
+          <mxGeometry height="20" width="200" x="75" y="578" as="geometry" />
+        </mxCell>
+        <mxCell id="l7" parent="1" style="rounded=1;fillColor=#fce4ec;strokeColor=#c2185b;fontSize=9;strokeWidth=3;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="50" y="605" as="geometry" />
+        </mxCell>
+        <mxCell id="l7t" parent="1" style="text;html=1;fontSize=10;align=left;" value="confirmation (V3 NOUVEAU)" vertex="1">
+          <mxGeometry height="20" width="180" x="75" y="603" as="geometry" />
+        </mxCell>
+        <mxCell id="l8" parent="1" style="rounded=1;fillColor=#f5f5f5;strokeColor=#82b366;fontSize=9;dashed=1;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="220" y="455" as="geometry" />
+        </mxCell>
+        <mxCell id="l8t" parent="1" style="text;html=1;fontSize=10;align=left;" value="Nouveau noeud V3" vertex="1">
+          <mxGeometry height="20" width="120" x="245" y="453" as="geometry" />
+        </mxCell>
+        <mxCell id="l9" parent="1" style="rounded=1;fillColor=#f5f5f5;strokeColor=#c2185b;fontSize=9;dashed=1;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="220" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="l9t" parent="1" style="text;html=1;fontSize=10;align=left;" value="Confirmation flow (V3)" vertex="1">
+          <mxGeometry height="20" width="150" x="245" y="478" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

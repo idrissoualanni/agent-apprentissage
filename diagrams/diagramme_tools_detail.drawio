@@ -1,0 +1,245 @@
+<mxfile host="app.diagrams.net" modified="2026-08-25T12:00:00.000Z" agent="Rodin" version="21.0.0">
+  <diagram id="tools-detail" name="6 Tools V3 — Logique Détaillée">
+    <mxGraphModel dx="2200" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="&lt;b&gt;6 Tools V3 — Logique Interne Détaillée&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=22;" vertex="1" parent="1">
+          <mxGeometry x="500" y="10" width="500" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- TOOL 1: generate_quiz -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="t1_zone" value="&lt;b&gt;🛠 Tool 1: generate_quiz&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#e3f2fd;strokeColor=#1565c0;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="60" width="480" height="500" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t1_args" value="&lt;b&gt;@tool Args&lt;/b&gt;&lt;br&gt;competency_name: str, context: str&lt;br&gt;nb_questions: int=3, difficulte: str='moyen'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="t1_zone">
+          <mxGeometry x="120" y="35" width="240" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t1_llm" value="&lt;b&gt;MODEL_MANAGER.get_llm('quiz_generation')&lt;/b&gt;&lt;br&gt;→ qwen2.5-coder:3b (strict_json, temp=0.2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="t1_zone">
+          <mxGeometry x="100" y="95" width="280" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t1_prompt" value="&lt;b&gt;QUIZ_PROMPT&lt;/b&gt;&lt;br&gt;Expert pédagogique — {nb_questions} QCM&lt;br&gt;Format Markdown structuré :&lt;br&gt;Q1. [texte] | A) B) C) D) | Réponse: B&lt;br&gt;Règles : 4 options A-D, une seule réponse, pas de préambule" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="t1_zone">
+          <mxGeometry x="60" y="150" width="360" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="et1_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="t1_llm" target="t1_prompt" parent="t1_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t1_parse" value="&lt;b&gt;Parser Markdown robuste (3 niveaux)&lt;/b&gt;&lt;br&gt;&lt;br&gt;1. _split_into_blocks(content)&lt;br&gt;   Regex : Q\\d+: | \\d+.:&lt;br&gt;   Sépare par blocs (question + options + réponse)&lt;br&gt;&lt;br&gt;2. _parse_block(block)&lt;br&gt;   • Extract question_text (regex Q/N.)&lt;br&gt;   • Extract 4 options (regex A./B./C./D.)&lt;br&gt;   • Extract correct_index (regex Réponse: X)&lt;br&gt;   • Retourne {question, options[4], correct_index}&lt;br&gt;&lt;br&gt;3. _parse_markdown_quiz(content, max=10)&lt;br&gt;   → Liste de questions parsées" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="t1_zone">
+          <mxGeometry x="40" y="235" width="400" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="et1_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="t1_prompt" target="t1_parse" parent="t1_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t1_fallback" value="&lt;b&gt;Fallback JSON&lt;/b&gt;&lt;br&gt;Si markdown parsing échoue :&lt;br&gt;_extract_json(content) → cherche ```json ... ```&lt;br&gt;Si toujours rien → question par défaut" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c62828;fontSize=9;" vertex="1" parent="t1_zone">
+          <mxGeometry x="100" y="400" width="280" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t1_return" value="&lt;b&gt;Return&lt;/b&gt;&lt;br&gt;json.dumps(questions)&lt;br&gt;Format: [{question, options[4], correct_index}]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="t1_zone">
+          <mxGeometry x="100" y="460" width="280" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- TOOL 2: evaluate_feynman -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="t2_zone" value="&lt;b&gt;🛠 Tool 2: evaluate_feynman&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#e8f5e9;strokeColor=#2e7d32;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="60" width="420" height="500" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t2_args" value="&lt;b&gt;@tool Args&lt;/b&gt;&lt;br&gt;topic: str, explanation: str" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="t2_zone">
+          <mxGeometry x="110" y="35" width="200" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t2_llm" value="&lt;b&gt;MODEL_MANAGER.get_llm('feynman_eval')&lt;/b&gt;&lt;br&gt;→ minimax-m3 (json_or_markdown, temp=0.2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="t2_zone">
+          <mxGeometry x="80" y="85" width="260" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t2_prompt" value="&lt;b&gt;Prompt Feynman&lt;/b&gt;&lt;br&gt;4 critères d'évaluation :&lt;br&gt;1. Clarté — facile à comprendre ?&lt;br&gt;2. Compréhension — concept compris ?&lt;br&gt;3. Exactitude — factuellement correct ?&lt;br&gt;4. Simplification — analogies simples ?&lt;br&gt;&lt;br&gt;→ JSON: {score 0-1, evaluation, gaps[], strengths[], feedback}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="t2_zone">
+          <mxGeometry x="40" y="140" width="340" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="et2_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="t2_llm" target="t2_prompt" parent="t2_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t2_parse" value="&lt;b&gt;Parse JSON&lt;/b&gt;&lt;br&gt;1. Strip ```json ... ```&lt;br&gt;2. json.loads(content)&lt;br&gt;3. Fallback si échec → {score: 0.5, feedback: raw[:500]}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="t2_zone">
+          <mxGeometry x="80" y="270" width="260" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="et2_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="t2_prompt" target="t2_parse" parent="t2_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t2_return" value="&lt;b&gt;Return&lt;/b&gt;&lt;br&gt;json.dumps({score, evaluation, gaps, strengths, feedback})" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="t2_zone">
+          <mxGeometry x="80" y="355" width="260" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t2_usage" value="&lt;b&gt;Utilisé par :&lt;/b&gt;&lt;br&gt;tool_execution_node (method='feynman')&lt;br&gt;→ Si feynman_explanation existe → evaluate&lt;br&gt;→ Sinon → demande explanation (awaiting=True)" style="text;html=1;align=left;fontSize=9;fontColor=#2e7d32;" vertex="1" parent="t2_zone">
+          <mxGeometry x="40" y="400" width="340" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- TOOL 3: create_artifact -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="t3_zone" value="&lt;b&gt;🛠 Tool 3: create_artifact&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#fff3e0;strokeColor=#e65100;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="990" y="60" width="450" height="500" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t3_args" value="&lt;b&gt;@tool Args&lt;/b&gt;&lt;br&gt;artifact_type: str, title: str, description: str" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="t3_zone">
+          <mxGeometry x="120" y="35" width="210" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t3_types" value="&lt;b&gt;4 types d'artefacts&lt;/b&gt;&lt;br&gt;&lt;br&gt;• &lt;b&gt;schema&lt;/b&gt; → Mermaid diagram (graph TD A→B)&lt;br&gt;• &lt;b&gt;quiz&lt;/b&gt; → JSON React interactif&lt;br&gt;• &lt;b&gt;code&lt;/b&gt; → Exemple annoté (Monaco editor)&lt;br&gt;• &lt;b&gt;chart&lt;/b&gt; → Données Recharts (bar/line/pie)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="t3_zone">
+          <mxGeometry x="40" y="85" width="250" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t3_llm" value="&lt;b&gt;MODEL_MANAGER.get_llm('artifact')&lt;/b&gt;&lt;br&gt;→ kimi-k2.7-code (strict_json, temp=0.5)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="t3_zone">
+          <mxGeometry x="80" y="200" width="290" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t3_prompt" value="&lt;b&gt;Prompt&lt;/b&gt;&lt;br&gt;Expert pédagogique + instruction par type&lt;br&gt;JSON strict : {type, title, content: {...}}&lt;br&gt;Contenu adapté au type (mermaid/json/code/chart)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="t3_zone">
+          <mxGeometry x="50" y="250" width="350" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="et3_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="t3_llm" target="t3_prompt" parent="t3_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t3_parse" value="&lt;b&gt;Parse JSON + Fallback&lt;/b&gt;&lt;br&gt;→ {type, title, content: {mermaid|questions|code|chartData}}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="t3_zone">
+          <mxGeometry x="80" y="320" width="290" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t3_return" value="&lt;b&gt;Return&lt;/b&gt;&lt;br&gt;json.dumps({type, title, content})&lt;br&gt;→ Stocké dans state['artifacts']" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="t3_zone">
+          <mxGeometry x="100" y="380" width="250" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t3_store" value="&lt;b&gt;artifact_store.py&lt;/b&gt;&lt;br&gt;@tool save_artifact() → crud.create_artifact()&lt;br&gt;@tool list_user_artifacts() → crud.list_artifacts()&lt;br&gt;→ Persistance en base SQLite table 'artifact'" style="text;html=1;align=left;fontSize=9;fontColor=#e65100;" vertex="1" parent="t3_zone">
+          <mxGeometry x="40" y="435" width="370" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- TOOL 4: web_search -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="t4_zone" value="&lt;b&gt;🛠 Tool 4: web_search&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#e0f7fa;strokeColor=#00695c;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="590" width="480" height="340" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t4_args" value="&lt;b&gt;@tool Args&lt;/b&gt;&lt;br&gt;query: str, provider: str='ddgs', max_results: int=5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="t4_zone">
+          <mxGeometry x="120" y="35" width="240" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t4_cache_check" value="&lt;b&gt;1. Cache Check&lt;/b&gt;&lt;br&gt;query_hash = sha256(query:provider)[:32]&lt;br&gt;get_web_search_cache() → SELECT results&lt;br&gt;Si hit &amp;amp; ttl &lt; 24h → return cached" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="t4_zone">
+          <mxGeometry x="40" y="85" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t4_switch" value="provider?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="t4_zone">
+          <mxGeometry x="300" y="85" width="90" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t4_ddgs" value="&lt;b&gt;DDGS&lt;/b&gt;&lt;br&gt;DDGS().text(query, max)&lt;br&gt;→ [{title, href, body}]&lt;br&gt;→ Normalisé: {title, url, snippet}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f4f8;strokeColor=#4a90d9;fontSize=9;" vertex="1" parent="t4_zone">
+          <mxGeometry x="20" y="180" width="140" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t4_tavily" value="&lt;b&gt;Tavily&lt;/b&gt;&lt;br&gt;httpx.post(api.tavily.com)&lt;br&gt;Header: api_key&lt;br&gt;→ [{title, url, content}]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3e2;strokeColor=#d4a04a;fontSize=9;" vertex="1" parent="t4_zone">
+          <mxGeometry x="170" y="180" width="140" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t4_brave" value="&lt;b&gt;Brave&lt;/b&gt;&lt;br&gt;httpx.get(api.search.brave.com)&lt;br&gt;Header: X-Subscription-Token&lt;br&gt;→ [{title, url, description}]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c62828;fontSize=9;" vertex="1" parent="t4_zone">
+          <mxGeometry x="320" y="180" width="140" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t4_cache_set" value="&lt;b&gt;2. Cache Set&lt;/b&gt;&lt;br&gt;set_web_search_cache(query, provider, results)&lt;br&gt;→ INSERT ON CONFLICT UPDATE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="t4_zone">
+          <mxGeometry x="120" y="270" width="240" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t4_return" value="&lt;b&gt;Return&lt;/b&gt; json.dumps(results[:max_results])" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="t4_zone">
+          <mxGeometry x="120" y="315" width="240" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- TOOL 5: progress (Leitner) -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="t5_zone" value="&lt;b&gt;🛠 Tool 5: progress (Leitner)&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#f3e5f5;strokeColor=#7b1fa2;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="590" width="450" height="540" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t5_intervals" value="&lt;b&gt;LEITNER_INTERVALS&lt;/b&gt;&lt;br&gt;Box 0: 1j | Box 1: 2j | Box 2: 5j&lt;br&gt;Box 3: 10j | Box 4: 21j | Box 5: 45j" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="t5_zone">
+          <mxGeometry x="120" y="35" width="210" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- update_mastery_after_quiz -->
+        <mxCell id="t5_quiz_title" value="&lt;b&gt;@tool update_mastery_after_quiz()&lt;/b&gt;" style="text;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="t5_zone">
+          <mxGeometry x="20" y="90" width="250" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="t5_quiz_logic" value="&lt;b&gt;Args&lt;/b&gt;: competency_id, is_correct&lt;br&gt;&lt;br&gt;Si current=None :&lt;br&gt;  score=0.5/0.2, box=1/0, status=learning/new&lt;br&gt;&lt;br&gt;Si current existe :&lt;br&gt;  delta = +0.15 (correct) | -0.1 (wrong)&lt;br&gt;  score = clamp(0, 1, score+delta)&lt;br&gt;  box = min(5, box+1) ou max(0, box-1)&lt;br&gt;  status = _compute_status(score, box)&lt;br&gt;&lt;br&gt;→ crud.upsert_mastery(score, box, status, next_review)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="t5_zone">
+          <mxGeometry x="20" y="115" width="250" height="145" as="geometry"/>
+        </mxCell>
+
+        <!-- update_mastery_after_feynman -->
+        <mxCell id="t5_feynman_title" value="&lt;b&gt;@tool update_mastery_after_feynman()&lt;/b&gt;" style="text;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="t5_zone">
+          <mxGeometry x="20" y="275" width="280" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="t5_feynman_logic" value="&lt;b&gt;Args&lt;/b&gt;: competency_id, score (0-1)&lt;br&gt;&lt;br&gt;Si current=None :&lt;br&gt;  box = 2(score≥0.7) | 1(score≥0.4) | 0&lt;br&gt;&lt;br&gt;Si current existe :&lt;br&gt;  score_moyenne = old*0.3 + new*0.7&lt;br&gt;  Si ≥0.8 → box+1, &amp;lt;0.4 → box-1&lt;br&gt;&lt;br&gt;→ crud.upsert_mastery()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="t5_zone">
+          <mxGeometry x="20" y="300" width="250" height="110" as="geometry"/>
+        </mxCell>
+
+        <!-- get_revision_plan -->
+        <mxCell id="t5_rev_title" value="&lt;b&gt;@tool get_revision_plan()&lt;/b&gt;" style="text;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="t5_zone">
+          <mxGeometry x="20" y="425" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="t5_rev_logic" value="&lt;b&gt;Args&lt;/b&gt;: domain (optionnel)&lt;br&gt;&lt;br&gt;1. crud.get_due_for_review()&lt;br&gt;   SELECT mastery WHERE next_review_at ≤ now&lt;br&gt;2. Filtrer par domain si fourni&lt;br&gt;3. Limiter à 5 premières&lt;br&gt;4. Format: {competency_id, nom, score, box, next_review}&lt;br&gt;→ JSON: {plan[], total_due, message}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="t5_zone">
+          <mxGeometry x="20" y="450" width="280" height="85" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t5_compute" value="&lt;b&gt;_compute_status(score, box)&lt;/b&gt;&lt;br&gt;score≥0.8 &amp;amp; box≥3 → 'acquired'&lt;br&gt;score≥0.4 → 'learning'&lt;br&gt;box>0 → 'review'&lt;br&gt;sinon → 'new'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="t5_zone">
+          <mxGeometry x="300" y="115" width="140" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- TOOL 6: artifact_store -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="t6_zone" value="&lt;b&gt;🛠 Tool 6: artifact_store&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#efebe9;strokeColor=#4e342e;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="590" width="420" height="280" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t6_save" value="&lt;b&gt;@tool save_artifact()&lt;/b&gt;&lt;br&gt;Args: artifact_type, title, content, session_id&lt;br&gt;&lt;br&gt;→ crud.create_artifact(&lt;br&gt;    user_id, session_id, type, title, content, format='json'&lt;br&gt;)&lt;br&gt;→ Return: {artifact_id, status: 'saved', type, title}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="t6_zone">
+          <mxGeometry x="20" y="35" width="185" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t6_list" value="&lt;b&gt;@tool list_user_artifacts()&lt;/b&gt;&lt;br&gt;Args: session_id (optionnel)&lt;br&gt;&lt;br&gt;→ crud.list_artifacts(user_id, session_id)&lt;br&gt;→ Return: {count, artifacts: [{id, type, title, created_at}]}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="t6_zone">
+          <mxGeometry x="215" y="35" width="190" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t6_db" value="&lt;b&gt;Table artifact (SQLite V3)&lt;/b&gt;&lt;br&gt;id | user_id | session_id | type | title | content | format | created_at" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="t6_zone">
+          <mxGeometry x="110" y="165" width="200" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="t6_note" value="&lt;b&gt;Note&lt;/b&gt;: create_artifact (tool) génère le contenu via LLM&lt;br&gt;save_artifact (store) persiste en base via CRUD&lt;br&gt;Les deux sont des @tool LangChain, appelés via .invoke()" style="text;html=1;align=left;fontSize=9;fontColor=#4e342e;" vertex="1" parent="t6_zone">
+          <mxGeometry x="20" y="225" width="380" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- LÉGENDE -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="legend" value="&lt;b&gt;Légende&lt;/b&gt;" style="swimlane;startSize=20;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="900" width="420" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="legend"><mxGeometry x="10" y="25" width="15" height="12" as="geometry"/></mxCell>
+        <mxCell id="leg1t" value="Entrée / Args / LLM" style="text;html=1;align=left;fontSize=9;" vertex="1" parent="legend"><mxGeometry x="30" y="23" width="120" height="16" as="geometry"/></mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="legend"><mxGeometry x="10" y="42" width="15" height="12" as="geometry"/></mxCell>
+        <mxCell id="leg2t" value="Logique interne / Prompt" style="text;html=1;align=left;fontSize=9;" vertex="1" parent="legend"><mxGeometry x="30" y="40" width="150" height="16" as="geometry"/></mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="legend"><mxGeometry x="10" y="59" width="15" height="12" as="geometry"/></mxCell>
+        <mxCell id="leg3t" value="Sortie / Retour" style="text;html=1;align=left;fontSize=9;" vertex="1" parent="legend"><mxGeometry x="30" y="57" width="100" height="16" as="geometry"/></mxCell>
+        <mxCell id="leg4" value="" style="shape=cylinder3;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="legend"><mxGeometry x="220" y="25" width="20" height="14" as="geometry"/></mxCell>
+        <mxCell id="leg4t" value="Base de données" style="text;html=1;align=left;fontSize=9;" vertex="1" parent="legend"><mxGeometry x="245" y="23" width="100" height="16" as="geometry"/></mxCell>
+        <mxCell id="leg5" value="" style="rhombus;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="legend"><mxGeometry x="220" y="42" width="15" height="12" as="geometry"/></mxCell>
+        <mxCell id="leg5t" value="Décision / Branchement" style="text;html=1;align=left;fontSize=9;" vertex="1" parent="legend"><mxGeometry x="240" y="40" width="140" height="16" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

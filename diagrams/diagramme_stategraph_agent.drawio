@@ -1,0 +1,224 @@
+<mxfile host="app.diagrams.net" modified="2026-08-24T12:00:00.000Z" agent="Rodin" version="24.0.0" type="device">
+  <diagram name="StateGraph Agent V3" id="stategraph-v3">
+    <mxGraphModel dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ═══ TITLE ═══ -->
+        <mxCell id="title" value="StateGraph — Agent d'Apprentissage V3&#xa;LangGraph + ModelManager + Confirmation + Tool Transparency" style="text;html=1;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fillColor=#f5f5f5;strokeColor=#666666;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="10" width="450" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ START ═══ -->
+        <mxCell id="sg_start" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#333;fontSize=12;fontStyle=1;" value="Message reçu" vertex="1">
+          <mxGeometry height="50" width="160" x="520" y="70" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ ROUTER ═══ -->
+        <mxCell id="sg_router" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#333;fontSize=12;fontStyle=1;" value="router_profil&#xa;Charge profil SQLite&#xa;Injecte model_manager" vertex="1">
+          <mxGeometry height="55" width="180" x="510" y="170" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ ANSWER_PROCESSING (V3 new) ═══ -->
+        <mxCell id="sg_answer_proc" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#333;fontSize=11;fontStyle=1;" value="answer_processing&#xa;Parse réponses utilisateur&#xa;Détection quiz/feynman/artifact" vertex="1">
+          <mxGeometry height="60" width="180" x="510" y="280" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ DIAGNOSTIC ═══ -->
+        <mxCell id="sg_diag" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#333;fontSize=12;fontStyle=1;" value="Diagnostic auto&#xa;Questions + upsert mastery" vertex="1">
+          <mxGeometry height="50" width="170" x="130" y="285" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ RETRIEVE ═══ -->
+        <mxCell id="sg_retrieve" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#333;fontSize=12;fontStyle=1;" value="retrieve&#xa;RAG ChromaDB" vertex="1">
+          <mxGeometry height="50" width="170" x="910" y="285" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ METHOD_SELECTION ═══ -->
+        <mxCell id="sg_method" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#333;fontSize=11;fontStyle=1;" value="method_selection&#xa;Choix méthode" vertex="1">
+          <mxGeometry height="90" width="170" x="515" y="410" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ CONFIRMATION (V3 new) ═══ -->
+        <mxCell id="sg_confirm" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#333;fontSize=11;fontStyle=1;" value="confirmation&#xa;Quiz / Feynman / Artifact&#xa;→ pending_confirmation" vertex="1">
+          <mxGeometry height="55" width="180" x="150" y="555" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ TOOL_EXECUTION ═══ -->
+        <mxCell id="sg_tool" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#333;fontSize=12;fontStyle=1;" value="tool_execution&#xa;quiz / feynman / artifact&#xa;web_search / revision" vertex="1">
+          <mxGeometry height="60" width="180" x="510" y="550" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ EVALUATION_MEMORY ═══ -->
+        <mxCell id="sg_eval" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#333;fontSize=12;fontStyle=1;" value="evaluation_memory&#xa;MAJ mastery + Leitner&#xa;Tool transparency logging" vertex="1">
+          <mxGeometry height="55" width="180" x="510" y="660" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ GENERATE ═══ -->
+        <mxCell id="sg_generate" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#333;fontSize=12;fontStyle=1;" value="generate_response&#xa;ModelManager.get_llm()&#xa;FormatControlledChatWrapper" vertex="1">
+          <mxGeometry height="60" width="200" x="500" y="770" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ MAJ SQLite ═══ -->
+        <mxCell id="sg_update" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#333;fontSize=10;" value="MAJ SQLite&#xa;mastery + Leitner&#xa;+ tool_usage" vertex="1">
+          <mxGeometry height="55" width="140" x="790" y="730" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ RESPONSE ═══ -->
+        <mxCell id="sg_response" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#333;fontSize=12;fontStyle=1;" value="Réponse affichée&#xa;+ ToolBadge(s)" vertex="1">
+          <mxGeometry height="55" width="170" x="510" y="890" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ EDGES ═══ -->
+        <!-- START → ROUTER -->
+        <mxCell id="se1" edge="1" parent="1" source="sg_start" style="strokeColor=#333;endArrow=block;endFill=1;strokeWidth=2;" target="sg_router">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ROUTER → DIAGNOSTIC (sujet nouveau) -->
+        <mxCell id="se2" edge="1" parent="1" source="sg_router" style="html=1;strokeColor=#b85450;fontColor=#b85450;fontSize=9;endArrow=block;endFill=1;strokeWidth=2;" target="sg_diag" value="sujet nouveau&#xa;ou profil incomplet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ROUTER → ANSWER_PROCESSING (réponse attendue) -->
+        <mxCell id="se3" edge="1" parent="1" source="sg_router" style="html=1;strokeColor=#9673a6;fontColor=#9673a6;fontSize=9;endArrow=block;endFill=1;strokeWidth=2;" target="sg_answer_proc" value="réponse utilisateur&#xa;attendue">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ROUTER → RETRIEVE (profil connu) -->
+        <mxCell id="se4" edge="1" parent="1" source="sg_router" style="html=1;strokeColor=#82b366;fontColor=#82b366;fontSize=9;endArrow=block;endFill=1;strokeWidth=2;" target="sg_retrieve" value="profil connu&#xa;+ RAG">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- DIAGNOSTIC → GENERATE -->
+        <mxCell id="se5" edge="1" parent="1" source="sg_diag" style="strokeColor=#b85450;endArrow=block;endFill=1;strokeWidth=2;" target="sg_generate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ANSWER_PROCESSING → EVALUATE (réponse détection) -->
+        <mxCell id="se6" edge="1" parent="1" source="sg_answer_proc" style="html=1;strokeColor=#d79b00;fontColor=#d79b00;fontSize=9;endArrow=block;endFill=1;strokeWidth=2;" target="sg_eval" value="évaluation détenue">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="440" y="310" /><mxPoint x="440" y="687" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ANSWER_PROCESSING → RETRIEVE (suite normale) -->
+        <mxCell id="se7" edge="1" parent="1" source="sg_answer_proc" style="html=1;strokeColor=#82b366;fontColor=#82b366;fontSize=9;endArrow=block;endFill=1;strokeWidth=2;" target="sg_retrieve" value="suite normale">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="440" y="330" /><mxPoint x="440" y="310" /><mxPoint x="910" y="310" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- RETRIEVE → METHOD -->
+        <mxCell id="se8" edge="1" parent="1" source="sg_retrieve" style="strokeColor=#333;endArrow=block;endFill=1;strokeWidth=2;" target="sg_method">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- METHOD → CONFIRMATION (quiz/feynman/artifact) -->
+        <mxCell id="se9" edge="1" parent="1" source="sg_method" style="html=1;strokeColor=#d79b00;fontColor=#d79b00;fontSize=9;endArrow=block;endFill=1;strokeWidth=2;" target="sg_confirm" value="quiz / feynman / artifact">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- METHOD → TOOL (web_search/revision) -->
+        <mxCell id="se10" edge="1" parent="1" source="sg_method" style="html=1;strokeColor=#d79b00;fontColor=#d79b00;fontSize=9;endArrow=block;endFill=1;strokeWidth=2;" target="sg_tool" value="web_search / revision">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="380" y="455" /><mxPoint x="380" y="550" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- METHOD → GENERATE (socratic/scaffold) -->
+        <mxCell id="se11" edge="1" parent="1" source="sg_method" style="html=1;strokeColor=#6c8ebf;fontColor=#6c8ebf;fontSize=9;endArrow=block;endFill=1;strokeWidth=2;" target="sg_generate" value="socratic / scaffold">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- CONFIRMATION → TOOL (accepté) -->
+        <mxCell id="se12" edge="1" parent="1" source="sg_confirm" style="html=1;strokeColor=#d79b00;fontColor=#d79b00;fontSize=9;endArrow=block;endFill=1;strokeWidth=2;" target="sg_tool" value="accepté">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- CONFIRMATION → END (attente) -->
+        <mxCell id="se13" edge="1" parent="1" source="sg_confirm" style="html=1;strokeColor=#888;fontColor=#888;fontSize=9;endArrow=block;endFill=1;strokeWidth=1;dashed=1;" target="sg_response" value="attente réponse">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="100" y="582" /><mxPoint x="100" y="917" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- TOOL → EVALUATE -->
+        <mxCell id="se14" edge="1" parent="1" source="sg_tool" style="strokeColor=#d79b00;endArrow=block;endFill=1;strokeWidth=2;" target="sg_eval">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- EVALUATE → GENERATE -->
+        <mxCell id="se15" edge="1" parent="1" source="sg_eval" style="strokeColor=#d79b00;endArrow=block;endFill=1;strokeWidth=2;" target="sg_generate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- EVALUATE → MAJ SQLite -->
+        <mxCell id="se16" edge="1" parent="1" source="sg_eval" style="strokeColor=#b85450;endArrow=block;endFill=1;strokeWidth=2;" target="sg_update">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- GENERATE → RESPONSE -->
+        <mxCell id="se17" edge="1" parent="1" source="sg_generate" style="strokeColor=#333;endArrow=block;endFill=1;strokeWidth=2;" target="sg_response">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- LOOP: Response → Router -->
+        <mxCell id="se_loop" edge="1" parent="1" source="sg_response" style="html=1;strokeColor=#888;fontColor=#888;fontSize=9;dashed=1;endArrow=block;endFill=1;curved=1;strokeWidth=1;" target="sg_router" value="session continue">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="917" />
+              <mxPoint x="1100" y="197" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══ LEGEND ═══ -->
+        <mxCell id="legend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;fontSize=10;" value="" vertex="1">
+          <mxGeometry height="230" width="340" x="60" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" parent="1" style="text;html=1;fontSize=12;fontStyle=1;align=left;" value="LEGENDE V3" vertex="1">
+          <mxGeometry height="20" width="100" x="70" y="705" as="geometry" />
+        </mxCell>
+        <mxCell id="l1" parent="1" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="70" y="735" as="geometry" />
+        </mxCell>
+        <mxCell id="l1t" parent="1" style="text;html=1;fontSize=10;align=left;" value="LLM (ModelManager → Ollama)" vertex="1">
+          <mxGeometry height="20" width="200" x="95" y="733" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" parent="1" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="70" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="l2t" parent="1" style="text;html=1;fontSize=10;align=left;" value="RAG Retrieval (ChromaDB)" vertex="1">
+          <mxGeometry height="20" width="180" x="95" y="758" as="geometry" />
+        </mxCell>
+        <mxCell id="l3" parent="1" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="70" y="785" as="geometry" />
+        </mxCell>
+        <mxCell id="l3t" parent="1" style="text;html=1;fontSize=10;align=left;" value="Answer Processing (V3 new)" vertex="1">
+          <mxGeometry height="20" width="200" x="95" y="783" as="geometry" />
+        </mxCell>
+        <mxCell id="l4" parent="1" style="rounded=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="70" y="810" as="geometry" />
+        </mxCell>
+        <mxCell id="l4t" parent="1" style="text;html=1;fontSize=10;align=left;" value="Tools + Confirmation + Evaluation" vertex="1">
+          <mxGeometry height="20" width="200" x="95" y="808" as="geometry" />
+        </mxCell>
+        <mxCell id="l5" parent="1" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="70" y="835" as="geometry" />
+        </mxCell>
+        <mxCell id="l5t" parent="1" style="text;html=1;fontSize=10;align=left;" value="Diagnostic (premier contact)" vertex="1">
+          <mxGeometry height="20" width="180" x="95" y="833" as="geometry" />
+        </mxCell>
+        <mxCell id="l6" parent="1" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" value="" vertex="1">
+          <mxGeometry height="16" width="16" x="70" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="l6t" parent="1" style="text;html=1;fontSize=10;align=left;" value="Router / Method Selection" vertex="1">
+          <mxGeometry height="20" width="180" x="95" y="858" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,197 @@
+<mxfile host="app.diagrams.net" modified="2026-08-25T12:00:00.000Z" agent="Rodin" version="21.0.0">
+  <diagram id="rag-pipeline" name="RAG Pipeline V3">
+    <mxGraphModel dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- TITRE -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="title" value="&lt;b&gt;Pipeline RAG V3 — Ingestion &amp; Retrieval&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="500" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- SECTION 1 : INGESTION (gauche) -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="zone_ingestion" value="&lt;b&gt;📥 INGESTION&lt;/b&gt;" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=14;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="80" width="580" height="880" as="geometry"/>
+        </mxCell>
+
+        <!-- Upload PDF -->
+        <mxCell id="ing_upload" value="&lt;b&gt;PDF Upload&lt;/b&gt;&lt;br&gt;apps/web/import/page.tsx&lt;br&gt;&lt;i&gt;POST /api/documents/upload&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="zone_ingestion">
+          <mxGeometry x="190" y="50" width="200" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Save to disk -->
+        <mxCell id="ing_save_disk" value="&lt;b&gt;Sauvegarde disque&lt;/b&gt;&lt;br&gt;data/documents/{filename}.pdf&lt;br&gt;&lt;i&gt;PDF_DIR.mkdir(parents=True)&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="zone_ingestion">
+          <mxGeometry x="190" y="140" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="ing_upload" target="ing_save_disk" parent="zone_ingestion">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Create document record -->
+        <mxCell id="ing_create_doc" value="&lt;b&gt;crud.create_document()&lt;/b&gt;&lt;br&gt;INSERT INTO document (filename, file_path)&lt;br&gt;→ Retourne document_id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="zone_ingestion">
+          <mxGeometry x="190" y="230" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="ing_save_disk" target="ing_create_doc" parent="zone_ingestion">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- PyPDFLoader -->
+        <mxCell id="ing_loader" value="&lt;b&gt;PyPDFLoader&lt;/b&gt;&lt;br&gt;langchain_community.document_loaders&lt;br&gt;&lt;i&gt;load_pdf(pdf_path) → list[Document]&lt;/i&gt;" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="zone_ingestion">
+          <mxGeometry x="165" y="320" width="250" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="ing_create_doc" target="ing_loader" parent="zone_ingestion">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Chunking -->
+        <mxCell id="ing_chunking" value="&lt;b&gt;RecursiveCharacterTextSplitter&lt;/b&gt;&lt;br&gt;chunk_size=1000 | chunk_overlap=200&lt;br&gt;separators: [\\n\\n, \\n, '. ', ' ', '']&lt;br&gt;&lt;i&gt;chunk_documents(docs) → list[Document]&lt;/i&gt;" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="zone_ingestion">
+          <mxGeometry x="165" y="410" width="250" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="ing_loader" target="ing_chunking" parent="zone_ingestion">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Section detection -->
+        <mxCell id="ing_section" value="&lt;b&gt;Détection section heuristique&lt;/b&gt;&lt;br&gt;_detect_section_heuristic(text)&lt;br&gt;&lt;br&gt;Patterns regex :&lt;br&gt;• Chapter/Chapitre/Section/Partie N...&lt;br&gt;• N.N.N. Titre Capitalisé&lt;br&gt;• TOUT EN MAJUSCULES (4-60 chars)&lt;br&gt;&lt;br&gt;→ Ajoute metadata['section_title']" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="zone_ingestion">
+          <mxGeometry x="155" y="520" width="270" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="ing_chunking" target="ing_section" parent="zone_ingestion">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Embeddings -->
+        <mxCell id="ing_embedding" value="&lt;b&gt;OllamaEmbeddings&lt;/b&gt;&lt;br&gt;model = qwen3-embedding:0.6b&lt;br&gt;&lt;i&gt;TOUJOURS LOCAL (même si Ollama distant)&lt;/i&gt;&lt;br&gt;EMBEDDING_BASE_URL optionnel" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="zone_ingestion">
+          <mxGeometry x="165" y="670" width="250" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="ing_section" target="ing_embedding" parent="zone_ingestion">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ChromaDB store -->
+        <mxCell id="ing_chroma" value="&lt;b&gt;ChromaDB (langchain-chroma)&lt;/b&gt;&lt;br&gt;Chroma.from_documents()&lt;br&gt;persist_directory = data/chroma/&lt;br&gt;&lt;br&gt;→ vectorstore.as_retriever(k=3)&lt;br&gt;→ Ou add_documents() si existe déjà" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="zone_ingestion">
+          <mxGeometry x="170" y="770" width="240" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="ing_embedding" target="ing_chroma" parent="zone_ingestion">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- SECTION 2 : RETRIEVAL (droite) -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="zone_retrieval" value="&lt;b&gt;🔍 RETRIEVAL&lt;/b&gt;" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=14;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="80" width="580" height="880" as="geometry"/>
+        </mxCell>
+
+        <!-- User question -->
+        <mxCell id="ret_question" value="&lt;b&gt;Question utilisateur&lt;/b&gt;&lt;br&gt;state['question']&lt;br&gt;&lt;i&gt;Depuis ChatWindow.tsx&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="zone_retrieval">
+          <mxGeometry x="190" y="50" width="200" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Meta detection -->
+        <mxCell id="ret_meta" value="&lt;b&gt;router_profil_node&lt;/b&gt;&lt;br&gt;_is_meta_question(question)&lt;br&gt;&lt;br&gt;Regex patterns :&lt;br&gt;• salut/bonjour/hello → True&lt;br&gt;• merci/ok/bien → True&lt;br&gt;• qui es-tu/quel est ton nom → True&lt;br&gt;• &lt;4 mots sans hints pédagogiques → True&lt;br&gt;&lt;br&gt;Si meta → rag_needed = False → skip retrieval" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="zone_retrieval">
+          <mxGeometry x="155" y="140" width="270" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="ret_question" target="ret_meta" parent="zone_retrieval">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- RAG needed? -->
+        <mxCell id="ret_decision" value="&lt;b&gt;rag_needed?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="zone_retrieval">
+          <mxGeometry x="215" y="320" width="130" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="ret_meta" target="ret_decision" parent="zone_retrieval">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Skip -->
+        <mxCell id="ret_skip" value="&lt;b&gt;SKIP&lt;/b&gt;&lt;br&gt;→ method_selection directement&lt;br&gt;context = ''" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="zone_retrieval">
+          <mxGeometry x="400" y="325" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e10" value="False (meta)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=10;" edge="1" source="ret_decision" target="ret_skip" parent="zone_retrieval">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Embedding query -->
+        <mxCell id="ret_embed_query" value="&lt;b&gt;OllamaEmbeddings.embed_query()&lt;/b&gt;&lt;br&gt;model = qwen3-embedding:0.6b&lt;br&gt;→ Vector de 1024 dimensions" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="zone_retrieval">
+          <mxGeometry x="175" y="420" width="230" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e11" value="True (pédagogique)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=10;" edge="1" source="ret_decision" target="ret_embed_query" parent="zone_retrieval">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ChromaDB similarity search -->
+        <mxCell id="ret_chroma" value="&lt;b&gt;ChromaDB.similarity_search()&lt;/b&gt;&lt;br&gt;query_embedding vs vecteurs stockés&lt;br&gt;search_kwargs = {k: 3}&lt;br&gt;&lt;br&gt;→ Retourne top-k documents&lt;br&gt;Chaque doc = page_content + metadata" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="zone_retrieval">
+          <mxGeometry x="170" y="510" width="240" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="ret_embed_query" target="ret_chroma" parent="zone_retrieval">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- format_docs -->
+        <mxCell id="ret_format" value="&lt;b&gt;format_docs(documents)&lt;/b&gt;&lt;br&gt;'\\n\\n'.join(doc.page_content for doc in documents)&lt;br&gt;→ String context unique" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="zone_retrieval">
+          <mxGeometry x="190" y="630" width="200" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="ret_chroma" target="ret_format" parent="zone_retrieval">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- State update -->
+        <mxCell id="ret_state" value="&lt;b&gt;Retour AgentState&lt;/b&gt;&lt;br&gt;return {\"context\": format_docs(docs)}&lt;br&gt;&lt;br&gt;→ state['context'] alimente les prompts&lt;br&gt;→ method_selection_node utilise le contexte&lt;br&gt;→ generate_node l'injecte dans le prompt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="zone_retrieval">
+          <mxGeometry x="155" y="710" width="270" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="ret_format" target="ret_state" parent="zone_retrieval">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- LÉGENDE -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="legend" value="" style="swimlane;startSize=25;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="80" width="280" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="30" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1t" value="Entrée utilisateur / Frontend" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="35" y="28" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="55" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2t" value="Logique métier / CRUD" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="35" y="53" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="" style="shape=hexagon;perimeter=hexagonPerimeter2;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="legend">
+          <mxGeometry x="5" y="78" width="30" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3t" value="Traitement LangChain / ML" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="35" y="78" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4" value="" style="shape=cylinder3;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="legend">
+          <mxGeometry x="7" y="100" width="26" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4t" value="Base de données / Vector Store" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="35" y="103" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg5" value="" style="rhombus;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="legend">
+          <mxGeometry x="7" y="128" width="26" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg5t" value="Décision / Branchement" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="35" y="130" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg6" value="" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="155" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg6t" value="Sortie / Retour état" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="35" y="153" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

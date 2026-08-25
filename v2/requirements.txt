@@ -1,0 +1,26 @@
+# Framework principal LangChain
+langchain
+langchain-community
+langchain-ollama
+langgraph
+langgraph-checkpoint-sqlite
+
+# Client Ollama officiel
+ollama
+
+# Base de données vectorielle & Embeddings
+chromadb
+
+# Traitement de documents & Découpage
+pypdf
+tiktoken
+
+# Interface utilisateur
+streamlit
+plotly
+
+# Utilitaires
+python-dotenv
+
+# Recherche web
+ddgs

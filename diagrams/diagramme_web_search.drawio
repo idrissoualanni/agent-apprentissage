@@ -1,0 +1,257 @@
+<mxfile host="app.diagrams.net" modified="2026-08-25T12:00:00.000Z" agent="Rodin" version="21.0.0">
+  <diagram id="web-search" name="Web Search V3">
+    <mxGraphModel dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- TITRE -->
+        <mxCell id="title" value="&lt;b&gt;Recherche Web V3 — Multi-fournisseur + Cache&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="500" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- DÉTECTION (haut) -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="zone_detection" value="&lt;b&gt;🎯 DÉTECTION web_search&lt;/b&gt;" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="80" width="1130" height="180" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="det_question" value="&lt;b&gt;Question utilisateur&lt;/b&gt;&lt;br&gt;state['question']" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="zone_detection">
+          <mxGeometry x="20" y="45" width="170" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="det_needs" value="&lt;b&gt;_needs_web_search(question)&lt;/b&gt;&lt;br&gt;Regex patterns :&lt;br&gt;• (prix|cours|taux|valeur|chiffre) + (du/de la/des)&lt;br&gt;• (dernière|nouveau|récent|actuel|aujourd'hui)&lt;br&gt;• (actualité|news|événement|breaking)&lt;br&gt;• (combien coûte|quel prix|que vaut)&lt;br&gt;• (stock|action|crypto|bitcoin|ethereum)&lt;br&gt;• (météo|weather|température)&lt;br&gt;• (score|résultat|match|coupe|championnat)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="zone_detection">
+          <mxGeometry x="230" y="30" width="300" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="ed1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="det_question" target="det_needs" parent="zone_detection">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="det_method" value="&lt;b&gt;method_selection_node&lt;/b&gt;&lt;br&gt;Si _needs_web_search → method = 'web_search'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="zone_detection">
+          <mxGeometry x="570" y="55" width="220" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ed2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="det_needs" target="det_method" parent="zone_detection">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="det_route" value="&lt;b&gt;route_after_method&lt;/b&gt;&lt;br&gt;method == 'web_search' → 'tool' node" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="zone_detection">
+          <mxGeometry x="830" y="55" width="220" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ed3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="det_method" target="det_route" parent="zone_detection">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- CACHE (milieu) -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="zone_cache" value="&lt;b&gt;💾 CACHE&lt;/b&gt;" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="290" width="1130" height="200" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cache_input" value="&lt;b&gt;web_search tool&lt;/b&gt;&lt;br&gt;query, provider, max_results" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="zone_cache">
+          <mxGeometry x="20" y="45" width="180" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cache_hash" value="&lt;b&gt;_hash_query(query, provider)&lt;/b&gt;&lt;br&gt;hashlib.sha256(f'{query}:{provider}')&lt;br&gt;→ query_hash (32 chars hex)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="zone_cache">
+          <mxGeometry x="250" y="35" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="ec1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="cache_input" target="cache_hash" parent="zone_cache">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cache_check" value="&lt;b&gt;get_web_search_cache()&lt;/b&gt;&lt;br&gt;SELECT results, fetched_at&lt;br&gt;FROM web_search_cache&lt;br&gt;WHERE query_hash = ?" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="zone_cache">
+          <mxGeometry x="500" y="30" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="ec2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="cache_hash" target="cache_check" parent="zone_cache">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cache_decision" value="&lt;b&gt;Hit?&lt;/b&gt;&lt;br&gt;(now - fetched_at) &lt; 24h?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="zone_cache">
+          <mxGeometry x="750" y="35" width="140" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="ec3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="cache_check" target="cache_decision" parent="zone_cache">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cache_hit" value="&lt;b&gt;CACHE HIT ✓&lt;/b&gt;&lt;br&gt;return cached[:max_results]&lt;br&gt;&lt;i&gt;Pas d'appel réseau&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="zone_cache">
+          <mxGeometry x="940" y="30" width="170" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ec4" value="Oui" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=10;" edge="1" source="cache_decision" target="cache_hit" parent="zone_cache">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cache_miss" value="&lt;b&gt;CACHE MISS&lt;/b&gt; → Provider" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="zone_cache">
+          <mxGeometry x="940" y="95" width="170" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="ec5" value="Non / Expiré" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=10;" edge="1" source="cache_decision" target="cache_miss" parent="zone_cache">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="cache_set" value="&lt;b&gt;set_web_search_cache()&lt;/b&gt;&lt;br&gt;INSERT INTO web_search_cache&lt;br&gt;(query_hash, query, provider, results)&lt;br&gt;ON CONFLICT → UPDATE results + fetched_at" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="zone_cache">
+          <mxGeometry x="500" y="130" width="250" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- PROVIDERS (bas) -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="zone_providers" value="&lt;b&gt;🌐 FOURNISSEURS&lt;/b&gt;" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="520" width="1130" height="440" as="geometry"/>
+        </mxCell>
+
+        <!-- Provider switch -->
+        <mxCell id="prov_switch" value="&lt;b&gt;provider == ?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="zone_providers">
+          <mxGeometry x="440" y="40" width="130" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- ─── DDGS ─── -->
+        <mxCell id="ddgs_box" value="&lt;b&gt;🦆 DuckDuckGo (DDGS)&lt;/b&gt;" style="swimlane;startSize=25;fillColor=#e8f4f8;strokeColor=#4a90d9;fontStyle=1;fontSize=12;rounded=1;" vertex="1" parent="zone_providers">
+          <mxGeometry x="20" y="120" width="340" height="290" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ddgs_lib" value="&lt;b&gt;from ddgs import DDGS&lt;/b&gt;&lt;br&gt;Librairie ddgs&gt;=6.0.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="ddgs_box">
+          <mxGeometry x="70" y="35" width="200" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ddgs_call" value="&lt;b&gt;DDGS().text(query, max_results)&lt;/b&gt;&lt;br&gt;→ Iterator de dicts&lt;br&gt;Keys: title, href/body" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="ddgs_box">
+          <mxGeometry x="50" y="90" width="240" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="edd1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="ddgs_lib" target="ddgs_call" parent="ddgs_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ddgs_map" value="&lt;b&gt;Normalisation&lt;/b&gt;&lt;br&gt;title → title&lt;br&gt;href (ou link) → url&lt;br&gt;body (ou snippet) → snippet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="ddgs_box">
+          <mxGeometry x="50" y="170" width="240" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="edd2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="ddgs_call" target="ddgs_map" parent="ddgs_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="ddgs_note" value="&lt;i&gt;✓ Gratuit, pas de clé API&lt;br&gt;⚠ Rate limit possible&lt;br&gt;Provider par défaut&lt;/i&gt;" style="text;html=1;align=center;fontSize=10;fontColor=#666666;" vertex="1" parent="ddgs_box">
+          <mxGeometry x="50" y="245" width="240" height="40" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="eprov1" value="ddgs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=10;fontColor=#4a90d9;" edge="1" source="prov_switch" target="ddgs_box" parent="zone_providers">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ─── TAVILY ─── -->
+        <mxCell id="tavily_box" value="&lt;b&gt;🔍 Tavily&lt;/b&gt;" style="swimlane;startSize=25;fillColor=#fef3e2;strokeColor=#d4a04a;fontStyle=1;fontSize=12;rounded=1;" vertex="1" parent="zone_providers">
+          <mxGeometry x="400" y="120" width="340" height="290" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="tavily_check" value="&lt;b&gt;TAVILY_API_KEY&lt;/b&gt; configuré ?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="tavily_box">
+          <mxGeometry x="110" y="30" width="120" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="tavily_fallback" value="Fallback → _search_ddgs()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="tavily_box">
+          <mxGeometry x="50" y="95" width="140" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="etv1" value="Non" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;" edge="1" source="tavily_check" target="tavily_fallback" parent="tavily_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="tavily_call" value="&lt;b&gt;httpx.post()&lt;/b&gt;&lt;br&gt;POST https://api.tavily.com/search&lt;br&gt;Body: {query, max_results, api_key}&lt;br&gt;Timeout: 15s&lt;br&gt;→ r.raise_for_status()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="tavily_box">
+          <mxGeometry x="40" y="140" width="260" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="etv2" value="Oui" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;" edge="1" source="tavily_check" target="tavily_call" parent="tavily_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="tavily_map" value="&lt;b&gt;Normalisation&lt;/b&gt;&lt;br&gt;title → title | url → url&lt;br&gt;content → snippet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="tavily_box">
+          <mxGeometry x="50" y="235" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="etv3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="tavily_call" target="tavily_map" parent="tavily_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="eprov2" value="tavily" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=10;fontColor=#d4a04a;" edge="1" source="prov_switch" target="tavily_box" parent="zone_providers">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ─── BRAVE ─── -->
+        <mxCell id="brave_box" value="&lt;b&gt;🦁 Brave Search&lt;/b&gt;" style="swimlane;startSize=25;fillColor=#fce4ec;strokeColor=#c62828;fontStyle=1;fontSize=12;rounded=1;" vertex="1" parent="zone_providers">
+          <mxGeometry x="780" y="120" width="340" height="290" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="brave_check" value="&lt;b&gt;BRAVE_API_KEY&lt;/b&gt; configuré ?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="brave_box">
+          <mxGeometry x="110" y="30" width="120" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="brave_fallback" value="Fallback → _search_ddgs()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="brave_box">
+          <mxGeometry x="50" y="95" width="140" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="ebr1" value="Non" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;" edge="1" source="brave_check" target="brave_fallback" parent="brave_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="brave_call" value="&lt;b&gt;httpx.get()&lt;/b&gt;&lt;br&gt;GET https://api.search.brave.com/res/v1/web/search&lt;br&gt;Params: {q: query, count: max_results}&lt;br&gt;Header: X-Subscription-Token: api_key&lt;br&gt;Timeout: 15s" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="brave_box">
+          <mxGeometry x="30" y="140" width="280" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="ebr2" value="Oui" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;" edge="1" source="brave_check" target="brave_call" parent="brave_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="brave_map" value="&lt;b&gt;Normalisation&lt;/b&gt;&lt;br&gt;title → title | url → url&lt;br&gt;description → snippet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="brave_box">
+          <mxGeometry x="50" y="235" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="ebr3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="brave_call" target="brave_map" parent="brave_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="eprov3" value="brave" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=10;fontColor=#c62828;" edge="1" source="prov_switch" target="brave_box" parent="zone_providers">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- SORTIE -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="output" value="&lt;b&gt;Retour tool_execution_node&lt;/b&gt;&lt;br&gt;json.dumps(results[:max_results])&lt;br&gt;Format: [{title, url, snippet}]&lt;br&gt;&lt;br&gt;→ Formatage Markdown pour l'utilisateur :&lt;br&gt;### Résultats web&lt;br&gt;**1. [title](url)**&lt;br&gt;snippet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="400" width="300" height="130" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- LÉGENDE -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="legend" value="" style="swimlane;startSize=25;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="80" width="300" height="280" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="30" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1t" value="Entrée / API externe" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="35" y="28" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="55" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2t" value="Traitement / Normalisation" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="35" y="53" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="" style="shape=cylinder3;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="legend">
+          <mxGeometry x="7" y="78" width="26" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3t" value="Cache / Base de données" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="35" y="80" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4" value="" style="rhombus;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="legend">
+          <mxGeometry x="7" y="108" width="26" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4t" value="Décision / Branchement" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="35" y="110" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg5" value="" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="135" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg5t" value="Sortie / Fallback" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="35" y="133" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="leg_notes" value="&lt;b&gt;Notes&lt;/b&gt;&lt;br&gt;• TTL cache = 24h (configurable)&lt;br&gt;• Si provider clé manquante → fallback DDGS&lt;br&gt;• Tous les providers normalisent en {title, url, snippet}&lt;br&gt;• DDGS = provider par défaut (gratuit)&lt;br&gt;• TTL configurable via WEB_SEARCH_CACHE_TTL_HOURS" style="text;html=1;align=left;fontSize=10;verticalAlign=top;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="160" width="280" height="100" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

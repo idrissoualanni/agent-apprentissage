@@ -1,0 +1,357 @@
+<mxfile host="app.diagrams.net" modified="2026-08-25T12:00:00.000Z" agent="Rodin" version="21.0.0">
+  <diagram id="nodes-detail" name="9 Nœuds StateGraph V3 — Logique Détaillée">
+    <mxGraphModel dx="2200" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="&lt;b&gt;9 Nœuds StateGraph V3 — Logique Interne Détaillée&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=22;" vertex="1" parent="1">
+          <mxGeometry x="500" y="10" width="550" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- NODE 1: router_profil -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="n1_zone" value="&lt;b&gt;① router_profil_node&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#e3f2fd;strokeColor=#1565c0;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="60" width="360" height="520" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n1_input" value="&lt;b&gt;Entrée&lt;/b&gt;&lt;br&gt;state['question']&lt;br&gt;retriever, model_manager, db_path" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="n1_zone">
+          <mxGeometry x="80" y="35" width="200" height="45" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n1_profile" value="&lt;b&gt;crud.get_profile(db_path)&lt;/b&gt;&lt;br&gt;→ profile = {domain, niveau_global, ...}&lt;br&gt;→ profile['domain'] = domaine actuel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="n1_zone">
+          <mxGeometry x="60" y="95" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="en1_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="n1_input" target="n1_profile" parent="n1_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n1_meta" value="&lt;b&gt;_is_meta_question(question)&lt;/b&gt;&lt;br&gt;6 regex patterns :&lt;br&gt;• ^(salut|bonjour|hello|...) → salutation&lt;br&gt;• ^(merci|ok|bien|...) → accusé réception&lt;br&gt;• ^(qui es-tu|quel est ton...) → méta&lt;br&gt;• ^(oui|non|peut-être) → réponse vague&lt;br&gt;&lt;br&gt;+ heuristic : &amp;lt;4 mots sans hints pédagogiques" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n1_zone">
+          <mxGeometry x="40" y="160" width="280" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="en1_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="n1_profile" target="n1_meta" parent="n1_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n1_dec_domain" value="&lt;b&gt;domain == '' ?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="n1_zone">
+          <mxGeometry x="115" y="290" width="130" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="en1_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="n1_meta" target="n1_dec_domain" parent="n1_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n1_no_domain" value="method='diagnostic'&lt;br&gt;rag_needed=not is_meta" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c62828;fontSize=10;" vertex="1" parent="n1_zone">
+          <mxGeometry x="30" y="360" width="150" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="en1_4" value="Oui" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;" edge="1" source="n1_dec_domain" target="n1_no_domain" parent="n1_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n1_has_domain" value="method='scaffold'&lt;br&gt;rag_needed=not is_meta" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="n1_zone">
+          <mxGeometry x="180" y="360" width="150" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="en1_5" value="Non" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;" edge="1" source="n1_dec_domain" target="n1_has_domain" parent="n1_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n1_return" value="&lt;b&gt;Return&lt;/b&gt;&lt;br&gt;{learner_profile, method, active_competency=None, rag_needed}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="n1_zone">
+          <mxGeometry x="40" y="415" width="280" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n1_routes" value="&lt;b&gt;Routes sortantes&lt;/b&gt;&lt;br&gt;• method='diagnostic' → diagnostic_node&lt;br&gt;• rag_needed=False → method_selection_node&lt;br&gt;• sinon → answer_processing_node" style="text;html=1;align=left;fontSize=9;fontColor=#1565c0;" vertex="1" parent="n1_zone">
+          <mxGeometry x="40" y="460" width="280" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- NODE 2: answer_processing -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="n2_zone" value="&lt;b&gt;② answer_processing_node&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#e8f5e9;strokeColor=#2e7d32;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="60" width="380" height="520" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n2_input" value="&lt;b&gt;Entrée&lt;/b&gt;&lt;br&gt;state['question'], db_path" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="n2_zone">
+          <mxGeometry x="90" y="35" width="180" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n2_dec_quiz" value="&lt;b&gt;quiz_active &amp;amp;&amp;amp; quiz_questions?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="n2_zone">
+          <mxGeometry x="115" y="85" width="150" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n2_parse" value="&lt;b&gt;Parse réponse quiz&lt;/b&gt;&lt;br&gt;1. int(user_input) → index direct (1-4)&lt;br&gt;2. Sinon : matching texte contre options&lt;br&gt;3. Si trouvé → evaluate_answer.invoke()&lt;br&gt;4. Sinon → message d'erreur" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n2_zone">
+          <mxGeometry x="30" y="165" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="en2_1" value="Oui" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;" edge="1" source="n2_dec_quiz" target="n2_parse" parent="n2_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n2_quiz_result" value="&lt;b&gt;evaluate_answer()&lt;/b&gt;&lt;br&gt;→ is_correct, correct_option&lt;br&gt;→ evaluation_score = 1.0 ou 0.0&lt;br&gt;→ quiz_active = False&lt;br&gt;→ quiz_questions = []" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n2_zone">
+          <mxGeometry x="30" y="260" width="190" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="en2_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="n2_parse" target="n2_quiz_result" parent="n2_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n2_dec_feynman" value="&lt;b&gt;awaiting_feynman?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="n2_zone">
+          <mxGeometry x="115" y="355" width="150" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n2_save_feynman" value="&lt;b&gt;Capturer explication&lt;/b&gt;&lt;br&gt;feynman_explanation = question&lt;br&gt;awaiting_feynman_explanation = False" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="n2_zone">
+          <mxGeometry x="50" y="425" width="200" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="en2_3" value="Oui" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;" edge="1" source="n2_dec_feynman" target="n2_save_feynman" parent="n2_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n2_routes" value="&lt;b&gt;Routes sortantes&lt;/b&gt;&lt;br&gt;• evaluation_score/feynman_score → evaluate&lt;br&gt;• quiz_active sans score → method&lt;br&gt;• awaiting sans explanation → method&lt;br&gt;• sinon → retrieve" style="text;html=1;align=left;fontSize=9;fontColor=#2e7d32;" vertex="1" parent="n2_zone">
+          <mxGeometry x="30" y="480" width="320" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- NODE 3: diagnostic -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="n3_zone" value="&lt;b&gt;③ diagnostic_node&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#fff3e0;strokeColor=#e65100;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="60" width="360" height="340" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n3_llm" value="&lt;b&gt;llm = model_manager.get_llm('diagnostic')&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="n3_zone">
+          <mxGeometry x="50" y="35" width="260" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n3_prompt" value="&lt;b&gt;DIAGNOSTIC_PROMPT&lt;/b&gt;&lt;br&gt;domain = profile['domain']&lt;br&gt;Génère 3 questions calibrées&lt;br&gt;Format JSON: {questions: [...], estimated_level}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="n3_zone">
+          <mxGeometry x="50" y="80" width="260" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="en3_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="n3_llm" target="n3_prompt" parent="n3_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n3_parse" value="&lt;b&gt;Parse réponse&lt;/b&gt;&lt;br&gt;1. Strip ```json ... ```&lt;br&gt;2. json.loads() → {questions, estimated_level}&lt;br&gt;3. Fallback si JSONDecodeError" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="n3_zone">
+          <mxGeometry x="50" y="150" width="260" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="en3_2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="n3_prompt" target="n3_parse" parent="n3_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n3_mastery" value="&lt;b&gt;Init mastery pour chaque compétence&lt;/b&gt;&lt;br&gt;level_to_score: {debutant: 0.2, inter: 0.5, avance: 0.8}&lt;br&gt;Pour chaque comp: crud.upsert_mastery(score, box=0, status='new')" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n3_zone">
+          <mxGeometry x="30" y="220" width="300" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="en3_3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="n3_parse" target="n3_mastery" parent="n3_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n3_return" value="&lt;b&gt;Return&lt;/b&gt;&lt;br&gt;{diagnostic_questions, estimated_level, method='diagnostic', answer=response.content}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="n3_zone">
+          <mxGeometry x="50" y="285" width="260" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- NODE 4: retrieval -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="n4_zone" value="&lt;b&gt;④ retrieval_node&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#f3e5f5;strokeColor=#7b1fa2;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="430" width="360" height="150" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n4_retrieve" value="&lt;b&gt;docs = retriever.invoke(question)&lt;/b&gt;&lt;br&gt;ChromaDB similarity_search(k=3)&lt;br&gt;→ top-3 documents les plus proches" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="n4_zone">
+          <mxGeometry x="30" y="35" width="300" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n4_format" value="&lt;b&gt;format_docs(docs)&lt;/b&gt;&lt;br&gt;'\\n\\n'.join(doc.page_content)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="n4_zone">
+          <mxGeometry x="30" y="95" width="200" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="en4_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="n4_retrieve" target="n4_format" parent="n4_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- NODE 5: method_selection -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="n5_zone" value="&lt;b&gt;⑤ method_selection_node&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#e8eaf6;strokeColor=#283593;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="60" width="380" height="520" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n5_detect_comp" value="&lt;b&gt;_detect_active_competency()&lt;/b&gt;&lt;br&gt;1. crud.get_competencies(domain)&lt;br&gt;2. Pour chaque comp : score matching&lt;br&gt;   • nom dans question → +10 pts&lt;br&gt;   • mots nom (&gt;3 chars) dans question → +2 pts&lt;br&gt;   • mots description (&gt;4 chars) → +1 pt&lt;br&gt;3. best_score ≥ 2 → retourne comp名称" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n5_zone">
+          <mxGeometry x="30" y="35" width="320" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n5_decisions" value="&lt;b&gt;Cascade de décision&lt;/b&gt;&lt;br&gt;&lt;br&gt;1. quiz_active → method='quiz'&lt;br&gt;2. feynman_explanation → method='feynman'&lt;br&gt;3. _needs_revision() → method='revision'&lt;br&gt;4. _needs_web_search() → method='web_search'&lt;br&gt;5. level=='debutant' → method='scaffold'&lt;br&gt;6. level=='intermediaire' → method='socratic'&lt;br&gt;7. Sinon (avancé) → method='feynman'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n5_zone">
+          <mxGeometry x="30" y="160" width="320" height="140" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n5_needs_rev" value="&lt;b&gt;_needs_revision()&lt;/b&gt;&lt;br&gt;Patterns: révis|revision|rappel|revoir&lt;br&gt;|rattrap|exercice.*révis|carte.*mémoire" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n5_zone">
+          <mxGeometry x="30" y="315" width="200" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n5_needs_web" value="&lt;b&gt;_needs_web_search()&lt;/b&gt;&lt;br&gt;Patterns: prix|cours|taux|dernier|nouveau&lt;br&gt;|actualité|combien coûte|crypto|météo|score" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n5_zone">
+          <mxGeometry x="30" y="380" width="200" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n5_return" value="&lt;b&gt;Return {method, active_competency}&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="n5_zone">
+          <mxGeometry x="70" y="450" width="240" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n5_routes" value="&lt;b&gt;Routes&lt;/b&gt;&lt;br&gt;quiz/feynman/artifact → confirmation&lt;br&gt;web_search/revision → tool&lt;br&gt;scaffold/socratic/diagnostic → generate" style="text;html=1;align=left;fontSize=9;fontColor=#283593;" vertex="1" parent="n5_zone">
+          <mxGeometry x="30" y="490" width="320" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- NODE 6: confirmation -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="n6_zone" value="&lt;b&gt;⑥ confirmation_node&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#fce4ec;strokeColor=#c62828;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="610" width="360" height="260" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n6_prompts" value="&lt;b&gt;CONFIRMATION_METHODS&lt;/b&gt;&lt;br&gt;quiz: 'Je vais te préparer un quiz...('&lt;br&gt;feynman: 'On va tester avec Feynman...('&lt;br&gt;artifact: 'Je vais créer un artefact...('" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n6_zone">
+          <mxGeometry x="20" y="35" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n6_dec" value="&lt;b&gt;user_confirmed?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="n6_zone">
+          <mxGeometry x="130" y="120" width="110" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n6_none" value="pending_confirmation=True&lt;br&gt;→ Envoie boutons UI&lt;br&gt;→ Fin de cycle (attend choix)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n6_zone">
+          <mxGeometry x="20" y="190" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="en6_1" value="None" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;" edge="1" source="n6_dec" target="n6_none" parent="n6_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n6_true" value="True → pending=False&lt;br&gt;→ tool_execution" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="n6_zone">
+          <mxGeometry x="260" y="120" width="80" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="en6_2" value="True" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;" edge="1" source="n6_dec" target="n6_true" parent="n6_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n6_false" value="False → method='scaffold'&lt;br&gt;'Pas de souci, on fait autre chose!'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c62828;fontSize=9;" vertex="1" parent="n6_zone">
+          <mxGeometry x="260" y="165" width="80" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="en6_3" value="False" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;" edge="1" source="n6_dec" target="n6_false" parent="n6_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- NODE 7: generate -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="n7_zone" value="&lt;b&gt;⑦ generate_node&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#e0f7fa;strokeColor=#00695c;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="610" width="380" height="340" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n7_skip" value="&lt;b&gt;Skip si&lt;/b&gt;&lt;br&gt;answer existe déjà &amp;amp;&amp;amp; method ∈ (quiz, feynman, artifact, web_search, revision)&lt;br&gt;→ return {} (pas de double génération)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c62828;fontSize=9;" vertex="1" parent="n7_zone">
+          <mxGeometry x="40" y="35" width="300" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n7_llm" value="&lt;b&gt;llm = model_manager.get_llm('answer')&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="n7_zone">
+          <mxGeometry x="70" y="100" width="240" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n7_select_prompt" value="&lt;b&gt;Sélection prompt selon method&lt;/b&gt;&lt;br&gt;• socratic → SOCRATIC_PROMPT (questions only)&lt;br&gt;• feynman → FEYNMAN_PROMPT_NODE (invite explanation)&lt;br&gt;• scaffold → SCAFFOLD_PROMPT (définition+analogie+exemple)&lt;br&gt;• diagnostic → DIAGNOSTIC_PROMPT (3 questions level)&lt;br&gt;• autre → RESPONSE_PROMPT (réponse directe)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n7_zone">
+          <mxGeometry x="30" y="145" width="320" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="en7_1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="n7_llm" target="n7_select_prompt" parent="n7_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n7_format" value="&lt;b&gt;format_messages()&lt;/b&gt;&lt;br&gt;context, competency_name, level, method, chat_history, question" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="n7_zone">
+          <mxGeometry x="50" y="245" width="280" height="35" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n7_return" value="&lt;b&gt;response = llm.invoke(messages)&lt;/b&gt;&lt;br&gt;→ return {answer: response.content}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="n7_zone">
+          <mxGeometry x="50" y="290" width="280" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- NODE 8: tool_execution -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="n8_zone" value="&lt;b&gt;⑧ tool_execution_node&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#fff8e1;strokeColor=#f57f17;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="610" width="380" height="340" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n8_timer" value="&lt;b&gt;t0 = time.time()&lt;/b&gt; (mesure durée)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="n8_zone">
+          <mxGeometry x="100" y="35" width="180" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n8_switch" value="&lt;b&gt;tool = state['method']&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="n8_zone">
+          <mxGeometry x="120" y="70" width="140" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n8_quiz" value="&lt;b&gt;quiz&lt;/b&gt;&lt;br&gt;generate_quiz.invoke()&lt;br&gt;→ quiz_questions, quiz_active=True&lt;br&gt;→ _format_quiz_for_display()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="n8_zone">
+          <mxGeometry x="10" y="140" width="110" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n8_feynman" value="&lt;b&gt;feynman&lt;/b&gt;&lt;br&gt;Si explanation : evaluate_feynman()&lt;br&gt;→ feynman_score, gaps, feedback&lt;br&gt;Sinon : demande explanation&lt;br&gt;→ awaiting=True" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="n8_zone">
+          <mxGeometry x="130" y="140" width="120" height="75" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n8_web" value="&lt;b&gt;web_search&lt;/b&gt;&lt;br&gt;web_search.invoke(query, 3)&lt;br&gt;→ [{title, url, snippet}]&lt;br&gt;→ Formatage Markdown" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="n8_zone">
+          <mxGeometry x="260" y="140" width="110" height="65" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n8_revision" value="&lt;b&gt;revision&lt;/b&gt;&lt;br&gt;get_revision_plan.invoke(domain)&lt;br&gt;→ plan[] + total_due&lt;br&gt;→ Formatage liste" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="n8_zone">
+          <mxGeometry x="10" y="220" width="110" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n8_artifact" value="&lt;b&gt;artifact&lt;/b&gt;&lt;br&gt;create_artifact.invoke()&lt;br&gt;→ {type, title, content}&lt;br&gt;→ artifacts.append(record)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="n8_zone">
+          <mxGeometry x="130" y="225" width="120" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n8_transparency" value="&lt;b&gt;_track_tool()&lt;/b&gt;&lt;br&gt;elapsed = (time.time()-t0)*1000&lt;br&gt;tool_transparency.append({name, duration_ms, success})" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n8_zone">
+          <mxGeometry x="260" y="225" width="110" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- NODE 9: evaluation_memory -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="n9_zone" value="&lt;b&gt;⑨ evaluation_memory_node&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#efebe9;strokeColor=#4e342e;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="610" width="380" height="340" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n9_dec" value="&lt;b&gt;Quel score?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="n9_zone">
+          <mxGeometry x="120" y="40" width="140" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n9_feynman" value="&lt;b&gt;feynman_score?&lt;/b&gt;&lt;br&gt;1. _resolve_competency_id()&lt;br&gt;2. update_mastery_after_feynman()&lt;br&gt;3. record_feynman_restitution()&lt;br&gt;4. leitner_action = promote/stay/demote" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n9_zone">
+          <mxGeometry x="20" y="110" width="170" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="en9_1" value="Feynman" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;" edge="1" source="n9_dec" target="n9_feynman" parent="n9_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n9_quiz" value="&lt;b&gt;evaluation_score?&lt;/b&gt;&lt;br&gt;1. _resolve_competency_id()&lt;br&gt;2. update_mastery_after_quiz()&lt;br&gt;3. record_quiz_attempt()&lt;br&gt;4. leitner_action = promote/demote" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n9_zone">
+          <mxGeometry x="200" y="110" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="en9_2" value="Quiz" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;" edge="1" source="n9_dec" target="n9_quiz" parent="n9_zone">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n9_resolve" value="&lt;b&gt;_resolve_competency_id()&lt;/b&gt;&lt;br&gt;1. crud.get_competencies(domain)&lt;br&gt;2. Matching nom == competency_name&lt;br&gt;3. → competency_id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n9_zone">
+          <mxGeometry x="100" y="210" width="180" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n9_session" value="&lt;b&gt;_resolve_session_id()&lt;/b&gt;&lt;br&gt;1. SELECT id FROM session WHERE langgraph_thread_id=?&lt;br&gt;2. Fallback: ORDER BY started_at DESC LIMIT 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="n9_zone">
+          <mxGeometry x="80" y="280" width="220" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="n9_return" value="&lt;b&gt;Return {leitner_action, evaluation_score/feynman_score}&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="n9_zone">
+          <mxGeometry x="80" y="300" width="220" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- LÉGENDE -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="legend" value="&lt;b&gt;Légende&lt;/b&gt;" style="swimlane;startSize=20;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="900" width="360" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="legend"><mxGeometry x="10" y="25" width="15" height="12" as="geometry"/></mxCell>
+        <mxCell id="leg1t" value="Entrée / Appel LLM" style="text;html=1;align=left;fontSize=9;" vertex="1" parent="legend"><mxGeometry x="30" y="23" width="120" height="16" as="geometry"/></mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="legend"><mxGeometry x="10" y="42" width="15" height="12" as="geometry"/></mxCell>
+        <mxCell id="leg2t" value="Logique interne / Détection" style="text;html=1;align=left;fontSize=9;" vertex="1" parent="legend"><mxGeometry x="30" y="40" width="170" height="16" as="geometry"/></mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="legend"><mxGeometry x="10" y="59" width="15" height="12" as="geometry"/></mxCell>
+        <mxCell id="leg3t" value="Sortie / Succès" style="text;html=1;align=left;fontSize=9;" vertex="1" parent="legend"><mxGeometry x="30" y="57" width="120" height="16" as="geometry"/></mxCell>
+        <mxCell id="leg4" value="" style="rounded=1;fillColor=#fce4ec;strokeColor=#c62828;" vertex="1" parent="legend"><mxGeometry x="200" y="25" width="15" height="12" as="geometry"/></mxCell>
+        <mxCell id="leg4t" value="Erreur / Rejet" style="text;html=1;align=left;fontSize=9;" vertex="1" parent="legend"><mxGeometry x="220" y="23" width="120" height="16" as="geometry"/></mxCell>
+        <mxCell id="leg5" value="" style="rhombus;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="legend"><mxGeometry x="200" y="42" width="15" height="12" as="geometry"/></mxCell>
+        <mxCell id="leg5t" value="Décision / Branchement" style="text;html=1;align=left;fontSize=9;" vertex="1" parent="legend"><mxGeometry x="220" y="40" width="140" height="16" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

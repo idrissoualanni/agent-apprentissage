@@ -48,3 +48,6 @@ data/documents/
 .agents/
 .claude/
 nul
+
+# Node
+node_modules/

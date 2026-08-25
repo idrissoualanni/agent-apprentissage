@@ -1,0 +1,252 @@
+<mxfile host="app.diagrams.net" modified="2026-08-25T12:00:00.000Z" agent="Rodin" version="21.0.0">
+  <diagram id="model-manager" name="ModelManager V3">
+    <mxGraphModel dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- TITRE -->
+        <mxCell id="title" value="&lt;b&gt;ModelManager V3 — Catalogue, Format Control, Fallback&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="550" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- CATALOGUE -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="zone_catalog" value="&lt;b&gt;📚 DEFAULT_CATALOG (8 modèles)&lt;/b&gt;" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="80" width="1540" height="220" as="geometry"/>
+        </mxCell>
+
+        <!-- Local models -->
+        <mxCell id="cat_local" value="&lt;b&gt;Locaux (ollama_local)&lt;/b&gt;" style="swimlane;startSize=22;fillColor=#e8f4f8;strokeColor=#4a90d9;fontStyle=1;fontSize=11;rounded=1;" vertex="1" parent="zone_catalog">
+          <mxGeometry x="20" y="40" width="460" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="cat_m1" value="&lt;b&gt;qwen2.5:1.5b&lt;/b&gt;&lt;br&gt;temp=0.2 | strict_json | 2048 tokens" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="cat_local">
+          <mxGeometry x="10" y="30" width="220" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="cat_m2" value="&lt;b&gt;qwen2.5-coder:3b&lt;/b&gt;&lt;br&gt;temp=0.2 | strict_json | 2048 tokens" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="cat_local">
+          <mxGeometry x="10" y="75" width="220" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="cat_m3" value="&lt;b&gt;qwen3-embedding:0.6b&lt;/b&gt;&lt;br&gt;temp=0.0 | free_text | 512 tokens" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="cat_local">
+          <mxGeometry x="10" y="120" width="220" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="cat_note_local" value="&lt;i&gt;Pas besoin d'API key&lt;br&gt;OLLAMA_NUM_GPU=0 par défaut&lt;br&gt;Embeddings TOUJOURS local&lt;/i&gt;" style="text;html=1;align=left;fontSize=9;fontColor=#666666;" vertex="1" parent="cat_local">
+          <mxGeometry x="240" y="30" width="200" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Cloud models -->
+        <mxCell id="cat_cloud" value="&lt;b&gt;Cloud (ollama_cloud)&lt;/b&gt;" style="swimlane;startSize=22;fillColor=#fef3e2;strokeColor=#d4a04a;fontStyle=1;fontSize=11;rounded=1;" vertex="1" parent="zone_catalog">
+          <mxGeometry x="500" y="40" width="520" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="cat_m4" value="&lt;b&gt;minimax-m3&lt;/b&gt;&lt;br&gt;temp=0.3 | json_or_markdown | 4096" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="cat_cloud">
+          <mxGeometry x="10" y="30" width="240" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="cat_m5" value="&lt;b&gt;qwen3.5:397b&lt;/b&gt;&lt;br&gt;temp=0.3 | json_or_markdown | 8192" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="cat_cloud">
+          <mxGeometry x="10" y="70" width="240" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="cat_m6" value="&lt;b&gt;kimi-k2.7-code&lt;/b&gt;&lt;br&gt;temp=0.2 | strict_json | 4096" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="cat_cloud">
+          <mxGeometry x="10" y="110" width="240" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="cat_m7" value="&lt;b&gt;deepseek-v4-flash&lt;/b&gt;&lt;br&gt;temp=0.3 | json_or_markdown | 4096" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="cat_cloud">
+          <mxGeometry x="260" y="30" width="240" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="cat_m8" value="&lt;b&gt;gpt-oss:120b&lt;/b&gt;&lt;br&gt;temp=0.3 | json_or_markdown | 4096" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="cat_cloud">
+          <mxGeometry x="260" y="70" width="240" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- Operation presets -->
+        <mxCell id="cat_presets" value="&lt;b&gt;OPERATION_PRESETS (7 presets)&lt;/b&gt;" style="swimlane;startSize=22;fillColor=#f3e5f5;strokeColor=#9c27b0;fontStyle=1;fontSize=11;rounded=1;" vertex="1" parent="zone_catalog">
+          <mxGeometry x="1040" y="40" width="480" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="pr1" value="chat → &lt;b&gt;minimax-m3&lt;/b&gt; (0.3)" style="text;html=1;fontSize=10;" vertex="1" parent="cat_presets">
+          <mxGeometry x="10" y="30" width="220" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="pr2" value="quiz_generation → &lt;b&gt;qwen2.5-coder:3b&lt;/b&gt; (0.2)" style="text;html=1;fontSize=10;" vertex="1" parent="cat_presets">
+          <mxGeometry x="10" y="48" width="230" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="pr3" value="feynman_eval → &lt;b&gt;minimax-m3&lt;/b&gt; (0.2)" style="text;html=1;fontSize=10;" vertex="1" parent="cat_presets">
+          <mxGeometry x="10" y="66" width="220" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="pr4" value="artifact → &lt;b&gt;kimi-k2.7-code&lt;/b&gt; (0.5)" style="text;html=1;fontSize=10;" vertex="1" parent="cat_presets">
+          <mxGeometry x="10" y="84" width="220" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="pr5" value="diagnostic → &lt;b&gt;minimax-m3&lt;/b&gt; (0.3)" style="text;html=1;fontSize=10;" vertex="1" parent="cat_presets">
+          <mxGeometry x="250" y="30" width="210" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="pr6" value="relevance_check → &lt;b&gt;qwen2.5-coder:3b&lt;/b&gt; (0.0)" style="text;html=1;fontSize=10;" vertex="1" parent="cat_presets">
+          <mxGeometry x="250" y="48" width="220" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="pr7" value="summarize → &lt;b&gt;minimax-m3&lt;/b&gt; (0.3)" style="text;html=1;fontSize=10;" vertex="1" parent="cat_presets">
+          <mxGeometry x="250" y="66" width="210" height="18" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- FLOW get_llm() -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="zone_flow" value="&lt;b&gt;⚙️ FLUX get_llm(operation)&lt;/b&gt;" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="330" width="1000" height="620" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="flow_input" value="&lt;b&gt;model_manager.get_llm(operation, **overrides)&lt;/b&gt;&lt;br&gt;Ex: get_llm('quiz_generation')&lt;br&gt;     get_llm('answer', model_name='qwen3.5:397b')" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="zone_flow">
+          <mxGeometry x="300" y="40" width="400" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="flow_preset" value="&lt;b&gt;Lookup OPERATION_PRESETS[operation]&lt;/b&gt;&lt;br&gt;→ {model_name, temperature}&lt;br&gt;Fallback: OPERATION_PRESETS['chat']&lt;br&gt;Merge avec **overrides" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="zone_flow">
+          <mxGeometry x="350" y="115" width="300" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="ef1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="flow_input" target="flow_preset" parent="zone_flow">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="flow_catalog" value="&lt;b&gt;Lookup _catalog[model_name]&lt;/b&gt;&lt;br&gt;→ {provider, format_mode, max_tokens}&lt;br&gt;Si inconnu → fallback vers chat par défaut" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="zone_flow">
+          <mxGeometry x="350" y="200" width="300" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="ef2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="flow_preset" target="flow_catalog" parent="zone_flow">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Provider branch -->
+        <mxCell id="flow_provider" value="&lt;b&gt;provider?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="zone_flow">
+          <mxGeometry x="420" y="280" width="160" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="ef3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="flow_catalog" target="flow_provider" parent="zone_flow">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Cloud path -->
+        <mxCell id="flow_cloud" value="&lt;b&gt;ollama_cloud&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3e2;strokeColor=#d4a04a;fontSize=11;" vertex="1" parent="zone_flow">
+          <mxGeometry x="120" y="355" width="140" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow_cloud_make" value="&lt;b&gt;CloudOllamaChat&lt;/b&gt;&lt;br&gt;model=name, temperature=temp&lt;br&gt;host=OLLAMA_BASE_URL&lt;br&gt;api_key=OLLAMA_API_KEY&lt;br&gt;&lt;br&gt;→ HTTP vers ollama.com ou self-hosted" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="zone_flow">
+          <mxGeometry x="50" y="410" width="250" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="ef4" value="cloud" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=10;fontColor=#d4a04a;" edge="1" source="flow_provider" target="flow_cloud" parent="zone_flow">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ef4b" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="flow_cloud" target="flow_cloud_make" parent="zone_flow">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Local path -->
+        <mxCell id="flow_local" value="&lt;b&gt;ollama_local&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f4f8;strokeColor=#4a90d9;fontSize=11;" vertex="1" parent="zone_flow">
+          <mxGeometry x="600" y="355" width="140" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow_local_make" value="&lt;b&gt;ChatOllama&lt;/b&gt;&lt;br&gt;model=name, temperature=temp&lt;br&gt;num_gpu=OLLAMA_NUM_GPU&lt;br&gt;&lt;br&gt;→ Appel local Ollama serve" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="zone_flow">
+          <mxGeometry x="530" y="410" width="240" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="ef5" value="local" style="edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=10;fontColor=#4a90d9;" edge="1" source="flow_provider" target="flow_local" parent="zone_flow">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ef5b" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="flow_local" target="flow_local_make" parent="zone_flow">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- FormatControlledLLM wrap -->
+        <mxCell id="flow_wrap" value="&lt;b&gt;FormatControlledLLM(llm, model_name, format_mode)&lt;/b&gt;&lt;br&gt;Wrapp le LLM brut avec le parser adapté" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="zone_flow">
+          <mxGeometry x="250" y="520" width="500" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="ef6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="flow_cloud_make" target="flow_wrap" parent="zone_flow">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ef7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="flow_local_make" target="flow_wrap" parent="zone_flow">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Return -->
+        <mxCell id="flow_return" value="&lt;b&gt;return FormatControlledLLM&lt;/b&gt;&lt;br&gt;→ .invoke(messages) → ParsedResponse" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="zone_flow">
+          <mxGeometry x="330" y="580" width="340" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="ef8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;" edge="1" source="flow_wrap" target="flow_return" parent="zone_flow">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- FORMAT PARSERS (droite) -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="zone_parsers" value="&lt;b&gt;🔧 PARSERS DE SORTIE&lt;/b&gt;" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=13;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="330" width="510" height="620" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="parser_invoke" value="&lt;b&gt;FormatControlledLLM.invoke(messages)&lt;/b&gt;&lt;br&gt;response = llm.invoke(messages)&lt;br&gt;raw = getattr(response, 'content', str(response))&lt;br&gt;parsed = parser.parse(raw)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="zone_parsers">
+          <mxGeometry x="60" y="40" width="390" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- StrictJSON -->
+        <mxCell id="parser_sj" value="&lt;b&gt;StrictJSONParser&lt;/b&gt;&lt;br&gt;format_mode = 'strict_json'&lt;br&gt;&lt;br&gt;1. Strip ```json ... ```&lt;br&gt;2. json.loads(content)&lt;br&gt;3. Si échec → ValueError&lt;br&gt;&lt;br&gt;→ {type: 'json', data: {...}}&lt;br&gt;→ Utilisé par: quiz_generation, relevance_check, artifact" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f4f8;strokeColor=#4a90d9;fontSize=10;" vertex="1" parent="zone_parsers">
+          <mxGeometry x="20" y="120" width="230" height="140" as="geometry"/>
+        </mxCell>
+
+        <!-- HybridParser -->
+        <mxCell id="parser_hybrid" value="&lt;b&gt;HybridParser&lt;/b&gt;&lt;br&gt;format_mode = 'json_or_markdown'&lt;br&gt;&lt;br&gt;1. Tente StrictJSONParser.parse()&lt;br&gt;2. Si ValueError → fallback&lt;br&gt;3. Retourne markdown brut&lt;br&gt;&lt;br&gt;→ {type: 'json'|'markdown', data: ...}&lt;br&gt;→ Utilisé par: chat, feynman_eval, summarize" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3e2;strokeColor=#d4a04a;fontSize=10;" vertex="1" parent="zone_parsers">
+          <mxGeometry x="260" y="120" width="230" height="140" as="geometry"/>
+        </mxCell>
+
+        <!-- MarkdownParser -->
+        <mxCell id="parser_md" value="&lt;b&gt;MarkdownParser&lt;/b&gt;&lt;br&gt;format_mode = 'markdown'&lt;br&gt;&lt;br&gt;→ Tout passe en brut&lt;br&gt;→ {type: 'markdown', data: content}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="zone_parsers">
+          <mxGeometry x="20" y="280" width="220" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- FreeTextParser -->
+        <mxCell id="parser_ft" value="&lt;b&gt;FreeTextParser&lt;/b&gt;&lt;br&gt;format_mode = 'free_text'&lt;br&gt;&lt;br&gt;→ Pas de parsing&lt;br&gt;→ {type: 'text', data: content}&lt;br&gt;→ Utilisé par: embedding" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="zone_parsers">
+          <mxGeometry x="260" y="280" width="220" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- ParsedResponse -->
+        <mxCell id="parser_response" value="&lt;b&gt;ParsedResponse&lt;/b&gt;&lt;br&gt;.raw → texte brut du LLM&lt;br&gt;.parsed → dict {type, data}&lt;br&gt;.content → string (JSON ou markdown)&lt;br&gt;&lt;br&gt;Compat LangChain: .content utilisé par les nœuds" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="zone_parsers">
+          <mxGeometry x="100" y="380" width="310" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Fallback chain -->
+        <mxCell id="fallback_title" value="&lt;b&gt;Fallback Chain&lt;/b&gt;" style="text;html=1;fontSize=12;fontStyle=1;" vertex="1" parent="zone_parsers">
+          <mxGeometry x="20" y="480" width="100" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="fallback_chain" value="minimax-m3 → qwen3.5:397b → kimi-k2.7-code → qwen2.5:1.5b" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="zone_parsers">
+          <mxGeometry x="20" y="510" width="470" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="fallback_note" value="model_manager.fallback(failed_model) → retourne le modèle suivant&lt;br&gt;Utilisé en cas d'erreur 401, timeout, etc." style="text;html=1;fontSize=10;fontColor=#666666;" vertex="1" parent="zone_parsers">
+          <mxGeometry x="20" y="555" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- refresh -->
+        <mxCell id="refresh_title" value="&lt;b&gt;refresh_from_ollama()&lt;/b&gt;" style="text;html=1;fontSize=12;fontStyle=1;" vertex="1" parent="zone_parsers">
+          <mxGeometry x="20" y="590" width="200" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="refresh_note" value="Appelle ollama.Client.list() → détecte les modèles disponibles&lt;br&gt;Ajoute les modèles inconnus au catalogue automatiquement&lt;br&gt;Retourne {added: N, total: M}" style="text;html=1;fontSize=10;fontColor=#666666;" vertex="1" parent="zone_parsers">
+          <mxGeometry x="20" y="615" width="470" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- LÉGENDE -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <mxCell id="legend" value="" style="swimlane;startSize=25;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="970" width="600" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="30" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1t" value="Entrée / API" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="35" y="28" width="80" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="legend">
+          <mxGeometry x="130" y="30" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2t" value="Traitement / Lookup" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="155" y="28" width="120" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="legend">
+          <mxGeometry x="290" y="30" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3t" value="Sortie / Wrapping" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="315" y="28" width="120" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4" value="" style="rhombus;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="legend">
+          <mxGeometry x="440" y="30" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4t" value="Décision" style="text;html=1;align=left;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="465" y="28" width="60" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

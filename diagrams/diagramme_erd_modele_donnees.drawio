@@ -1,0 +1,428 @@
+<mxfile host="app.diagrams.net" modified="2026-08-24T12:00:00.000Z" agent="Rodin" version="24.0.0" type="device">
+  <diagram name="Modèle de données (ERD V3)" id="erd-v3">
+    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ═══ TITLE ═══ -->
+        <mxCell id="title" value="Agent d'Apprentissage — ERD V3 (12 tables)&#xa;Toutes tables avec user_id — Nouvelles tables en bas" style="text;html=1;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fillColor=#f5f5f5;strokeColor=#666666;rounded=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="550" y="10" width="500" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ LEARNER_PROFILE ═══ -->
+        <mxCell id="erd_lp" parent="1" style="swimlane;startSize=28;fillColor=#dae8fc;strokeColor=#1B3A6B;fontColor=#1B3A6B;fontSize=12;fontStyle=1;rounded=1;" value="LEARNER_PROFILE" vertex="1">
+          <mxGeometry height="200" width="220" x="40" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_lp_id" parent="erd_lp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="id : INT PK" vertex="1">
+          <mxGeometry height="24" width="220" y="28" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_lp_uid" parent="erd_lp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;fontStyle=1;fontColor=#b85450;" value="user_id : TEXT (UNIQUE)" vertex="1">
+          <mxGeometry height="24" width="220" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_lp_domain" parent="erd_lp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="domain : TEXT" vertex="1">
+          <mxGeometry height="24" width="220" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_lp_niv" parent="erd_lp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="niveau_global : TEXT" vertex="1">
+          <mxGeometry height="24" width="220" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_lp_ctx" parent="erd_lp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;fontStyle=2;fontColor=#9673a6;" value="learning_context : TEXT (V3)" vertex="1">
+          <mxGeometry height="22" width="220" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_lp_goals" parent="erd_lp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;fontStyle=2;fontColor=#9673a6;" value="goals, mastered_topics, ..." vertex="1">
+          <mxGeometry height="20" width="220" y="146" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_lp_upd" parent="erd_lp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="updated_at : DATETIME" vertex="1">
+          <mxGeometry height="24" width="220" y="166" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ COMPETENCY ═══ -->
+        <mxCell id="erd_comp" parent="1" style="swimlane;startSize=28;fillColor=#dae8fc;strokeColor=#1B3A6B;fontColor=#1B3A6B;fontSize=12;fontStyle=1;rounded=1;" value="COMPETENCY" vertex="1">
+          <mxGeometry height="150" width="220" x="340" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_comp_id" parent="erd_comp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="id : INT PK" vertex="1">
+          <mxGeometry height="24" width="220" y="28" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_comp_dom" parent="erd_comp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="domain : TEXT" vertex="1">
+          <mxGeometry height="24" width="220" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_comp_nom" parent="erd_comp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="nom : TEXT" vertex="1">
+          <mxGeometry height="24" width="220" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_comp_parent" parent="erd_comp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="parent_id : INT FK (self-ref)" vertex="1">
+          <mxGeometry height="24" width="220" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_comp_desc" parent="erd_comp" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="description : TEXT" vertex="1">
+          <mxGeometry height="24" width="220" y="124" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ MASTERY ═══ -->
+        <mxCell id="erd_mast" parent="1" style="swimlane;startSize=28;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#82b366;fontSize=12;fontStyle=1;rounded=1;" value="MASTERY" vertex="1">
+          <mxGeometry height="210" width="230" x="660" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mast_id" parent="erd_mast" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="id : INT PK" vertex="1">
+          <mxGeometry height="24" width="230" y="28" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mast_cid" parent="erd_mast" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="competency_id : INT FK" vertex="1">
+          <mxGeometry height="24" width="230" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mast_sc" parent="erd_mast" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="score : FLOAT (0-1)" vertex="1">
+          <mxGeometry height="24" width="230" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mast_lb" parent="erd_mast" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="leitner_box : INT (0-5)" vertex="1">
+          <mxGeometry height="24" width="230" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mast_lra" parent="erd_mast" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="last_reviewed_at : DATETIME" vertex="1">
+          <mxGeometry height="24" width="230" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mast_nra" parent="erd_mast" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="next_review_at : DATETIME" vertex="1">
+          <mxGeometry height="24" width="230" y="148" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mast_st" parent="erd_mast" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="status : TEXT (new/learning/acquired/review)" vertex="1">
+          <mxGeometry height="24" width="230" y="172" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ SESSION ═══ -->
+        <mxCell id="erd_sess" parent="1" style="swimlane;startSize=28;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#d6b656;fontSize=12;fontStyle=1;rounded=1;" value="SESSION" vertex="1">
+          <mxGeometry height="160" width="220" x="40" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_sess_id" parent="erd_sess" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="id : INT PK" vertex="1">
+          <mxGeometry height="24" width="220" y="28" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_sess_uid" parent="erd_sess" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;fontStyle=1;fontColor=#b85450;" value="user_id : TEXT" vertex="1">
+          <mxGeometry height="24" width="220" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_sess_tid" parent="erd_sess" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="langgraph_thread_id : TEXT (UNIQUE)" vertex="1">
+          <mxGeometry height="24" width="220" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_sess_title" parent="erd_sess" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;fontStyle=2;fontColor=#9673a6;" value="title : TEXT (V3)" vertex="1">
+          <mxGeometry height="24" width="220" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_sess_sa" parent="erd_sess" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="started_at : DATETIME" vertex="1">
+          <mxGeometry height="24" width="220" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_sess_ea" parent="erd_sess" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="ended_at : DATETIME" vertex="1">
+          <mxGeometry height="24" width="220" y="148" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ MESSAGE ═══ -->
+        <mxCell id="erd_msg" parent="1" style="swimlane;startSize=28;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#d6b656;fontSize=12;fontStyle=1;rounded=1;" value="MESSAGE" vertex="1">
+          <mxGeometry height="160" width="220" x="340" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_msg_id" parent="erd_msg" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="id : INT PK" vertex="1">
+          <mxGeometry height="24" width="220" y="28" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_msg_sid" parent="erd_msg" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="session_id : INT FK" vertex="1">
+          <mxGeometry height="24" width="220" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_msg_uid" parent="erd_msg" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;fontStyle=1;fontColor=#b85450;" value="user_id : TEXT" vertex="1">
+          <mxGeometry height="24" width="220" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_msg_role" parent="erd_msg" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="role : TEXT (user/assistant/system)" vertex="1">
+          <mxGeometry height="24" width="220" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_msg_cont" parent="erd_msg" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="content : TEXT" vertex="1">
+          <mxGeometry height="24" width="220" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_msg_meth" parent="erd_msg" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="method_used : TEXT" vertex="1">
+          <mxGeometry height="24" width="220" y="148" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ DOCUMENT ═══ -->
+        <mxCell id="erd_doc" parent="1" style="swimlane;startSize=28;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#9673a6;fontSize=12;fontStyle=1;rounded=1;" value="DOCUMENT" vertex="1">
+          <mxGeometry height="140" width="220" x="40" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_doc_id" parent="erd_doc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="id : INT PK" vertex="1">
+          <mxGeometry height="24" width="220" y="28" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_doc_fn" parent="erd_doc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="filename : TEXT" vertex="1">
+          <mxGeometry height="24" width="220" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_doc_fp" parent="erd_doc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;fontStyle=2;fontColor=#9673a6;" value="file_path : TEXT (V3)" vertex="1">
+          <mxGeometry height="24" width="220" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_doc_ua" parent="erd_doc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="uploaded_at : DATETIME" vertex="1">
+          <mxGeometry height="24" width="220" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_doc_nc" parent="erd_doc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="num_chunks : INT" vertex="1">
+          <mxGeometry height="24" width="220" y="124" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ CHUNK ═══ -->
+        <mxCell id="erd_chunk" parent="1" style="swimlane;startSize=28;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#9673a6;fontSize=12;fontStyle=1;rounded=1;" value="CHUNK" vertex="1">
+          <mxGeometry height="170" width="220" x="340" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_chunk_id" parent="erd_chunk" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="id : INT PK" vertex="1">
+          <mxGeometry height="24" width="220" y="28" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_chunk_did" parent="erd_chunk" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="document_id : INT FK" vertex="1">
+          <mxGeometry height="24" width="220" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_chunk_ci" parent="erd_chunk" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="chunk_index : INT" vertex="1">
+          <mxGeometry height="24" width="220" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_chunk_st" parent="erd_chunk" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="section_title : TEXT" vertex="1">
+          <mxGeometry height="24" width="220" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_chunk_vid" parent="erd_chunk" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="chroma_vector_id : TEXT" vertex="1">
+          <mxGeometry height="24" width="220" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_chunk_cid" parent="erd_chunk" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;fontStyle=2;fontColor=#9673a6;" value="competency_id : INT FK (V3)" vertex="1">
+          <mxGeometry height="24" width="220" y="148" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ QUIZ_ATTEMPT ═══ -->
+        <mxCell id="erd_quiz" parent="1" style="swimlane;startSize=28;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#b85450;fontSize=12;fontStyle=1;rounded=1;" value="QUIZ_ATTEMPT" vertex="1">
+          <mxGeometry height="210" width="240" x="660" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_quiz_id" parent="erd_quiz" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="id : INT PK" vertex="1">
+          <mxGeometry height="24" width="240" y="28" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_quiz_cid" parent="erd_quiz" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="competency_id : INT FK" vertex="1">
+          <mxGeometry height="24" width="240" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_quiz_sid" parent="erd_quiz" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="session_id : INT FK" vertex="1">
+          <mxGeometry height="24" width="240" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_quiz_uid" parent="erd_quiz" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;fontStyle=1;fontColor=#b85450;" value="user_id : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_quiz_q" parent="erd_quiz" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="question : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_quiz_opt" parent="erd_quiz" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;fontStyle=2;fontColor=#9673a6;" value="options : TEXT (V3)" vertex="1">
+          <mxGeometry height="24" width="240" y="148" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_quiz_ua" parent="erd_quiz" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="user_answer : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="172" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_quiz_correct" parent="erd_quiz" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;fontStyle=2;fontColor=#9673a6;" value="is_correct : BOOLEAN (V3)" vertex="1">
+          <mxGeometry height="24" width="240" y="196" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ FEYNMAN_RESTITUTION ═══ -->
+        <mxCell id="erd_feyn" parent="1" style="swimlane;startSize=28;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#b85450;fontSize=12;fontStyle=1;rounded=1;" value="FEYNMAN_RESTITUTION" vertex="1">
+          <mxGeometry height="200" width="240" x="660" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_feyn_id" parent="erd_feyn" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="id : INT PK" vertex="1">
+          <mxGeometry height="24" width="240" y="28" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_feyn_cid" parent="erd_feyn" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="competency_id : INT FK" vertex="1">
+          <mxGeometry height="24" width="240" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_feyn_sid" parent="erd_feyn" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="session_id : INT FK" vertex="1">
+          <mxGeometry height="24" width="240" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_feyn_uid" parent="erd_feyn" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;fontStyle=1;fontColor=#b85450;" value="user_id : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_feyn_ue" parent="erd_feyn" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="user_explanation : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_feyn_ae" parent="erd_feyn" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="agent_evaluation : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="148" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_feyn_score" parent="erd_feyn" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=10;fontStyle=2;fontColor=#9673a6;" value="score : FLOAT (V3)" vertex="1">
+          <mxGeometry height="24" width="240" y="172" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- ═══ NOUVELLES TABLES V3 (bas) ═══ -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+
+        <!-- ═══ ARTIFACT ═══ -->
+        <mxCell id="erd_art" parent="1" style="swimlane;startSize=28;fillColor=#e6f3ff;strokeColor=#3366cc;fontColor=#3366cc;fontSize=12;fontStyle=1;rounded=1;" value="ARTIFACT (V3)" vertex="1">
+          <mxGeometry height="180" width="240" x="40" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_art_id" parent="erd_art" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="id : INT PK" vertex="1">
+          <mxGeometry height="24" width="240" y="28" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_art_uid" parent="erd_art" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;fontStyle=1;fontColor=#b85450;" value="user_id : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_art_sid" parent="erd_art" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="session_id : INT FK" vertex="1">
+          <mxGeometry height="24" width="240" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_art_type" parent="erd_art" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="type : TEXT (schema/quiz/code/chart)" vertex="1">
+          <mxGeometry height="24" width="240" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_art_title" parent="erd_art" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="title : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_art_content" parent="erd_art" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="content : TEXT (JSON)" vertex="1">
+          <mxGeometry height="24" width="240" y="148" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_art_fmt" parent="erd_art" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="format : TEXT (json/markdown)" vertex="1">
+          <mxGeometry height="24" width="240" y="172" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ MODEL_CONFIG ═══ -->
+        <mxCell id="erd_mc" parent="1" style="swimlane;startSize=28;fillColor=#e6f3ff;strokeColor=#3366cc;fontColor=#3366cc;fontSize=12;fontStyle=1;rounded=1;" value="MODEL_CONFIG (V3)" vertex="1">
+          <mxGeometry height="210" width="240" x="340" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mc_id" parent="erd_mc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="id : INT PK" vertex="1">
+          <mxGeometry height="24" width="240" y="28" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mc_name" parent="erd_mc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="model_name : TEXT (UNIQUE)" vertex="1">
+          <mxGeometry height="24" width="240" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mc_display" parent="erd_mc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="display_name : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mc_provider" parent="erd_mc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="provider : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mc_temp" parent="erd_mc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="default_temperature : REAL" vertex="1">
+          <mxGeometry height="24" width="240" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mc_format" parent="erd_mc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="format_mode : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="148" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mc_maxtok" parent="erd_mc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="max_tokens : INT" vertex="1">
+          <mxGeometry height="24" width="240" y="172" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_mc_active" parent="erd_mc" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="is_active : BOOLEAN" vertex="1">
+          <mxGeometry height="24" width="240" y="196" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ WEB_SEARCH_CACHE ═══ -->
+        <mxCell id="erd_ws" parent="1" style="swimlane;startSize=28;fillColor=#e6f3ff;strokeColor=#3366cc;fontColor=#3366cc;fontSize=12;fontStyle=1;rounded=1;" value="WEB_SEARCH_CACHE (V3)" vertex="1">
+          <mxGeometry height="160" width="240" x="660" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_ws_id" parent="erd_ws" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="id : INT PK" vertex="1">
+          <mxGeometry height="24" width="240" y="28" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_ws_hash" parent="erd_ws" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="query_hash : TEXT (UNIQUE)" vertex="1">
+          <mxGeometry height="24" width="240" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_ws_q" parent="erd_ws" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="query : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_ws_prov" parent="erd_ws" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="provider : TEXT (ddgs/tavily/brave)" vertex="1">
+          <mxGeometry height="24" width="240" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_ws_res" parent="erd_ws" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="results : TEXT (JSON array)" vertex="1">
+          <mxGeometry height="24" width="240" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_ws_fetched" parent="erd_ws" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="fetched_at : DATETIME" vertex="1">
+          <mxGeometry height="24" width="240" y="148" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ TOOL_USAGE ═══ -->
+        <mxCell id="erd_tu" parent="1" style="swimlane;startSize=28;fillColor=#e6f3ff;strokeColor=#3366cc;fontColor=#3366cc;fontSize=12;fontStyle=1;rounded=1;" value="TOOL_USAGE (V3)" vertex="1">
+          <mxGeometry height="190" width="240" x="960" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_tu_id" parent="erd_tu" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="id : INT PK" vertex="1">
+          <mxGeometry height="24" width="240" y="28" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_tu_uid" parent="erd_tu" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;fontStyle=1;fontColor=#b85450;" value="user_id : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_tu_sid" parent="erd_tu" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="session_id : INT FK" vertex="1">
+          <mxGeometry height="24" width="240" y="76" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_tu_name" parent="erd_tu" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="tool_name : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_tu_in" parent="erd_tu" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="input_summary : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_tu_out" parent="erd_tu" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="output_summary : TEXT" vertex="1">
+          <mxGeometry height="24" width="240" y="148" as="geometry" />
+        </mxCell>
+        <mxCell id="erd_tu_dur" parent="erd_tu" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontSize=11;" value="duration_ms : INT / success : BOOL" vertex="1">
+          <mxGeometry height="24" width="240" y="172" as="geometry" />
+        </mxCell>
+
+        <!-- ═══ RELATIONS ═══ -->
+        <!-- LP → MASTERY -->
+        <mxCell id="erd_r1" edge="1" parent="1" source="erd_lp" style="endArrow=crow;endFill=0;startArrow=none;strokeColor=#333;fontColor=#333;fontSize=10;" target="erd_mast_st" value="1:N">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="150" y="310" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- COMPETENCY → MASTERY -->
+        <mxCell id="erd_r2" edge="1" parent="1" source="erd_comp" style="endArrow=crow;endFill=0;startArrow=none;strokeColor=#333;fontColor=#333;fontSize=10;" target="erd_mast_sc" value="1:N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- COMPETENCY → QUIZ -->
+        <mxCell id="erd_r3" edge="1" parent="1" source="erd_comp" style="endArrow=crow;endFill=0;startArrow=none;strokeColor=#333;fontColor=#333;fontSize=10;" target="erd_quiz" value="1:N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- COMPETENCY → FEYNMAN -->
+        <mxCell id="erd_r4" edge="1" parent="1" source="erd_comp" style="endArrow=crow;endFill=0;startArrow=none;strokeColor=#333;fontColor=#333;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" value="1:N">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="450" y="300" /><mxPoint x="600" y="300" /><mxPoint x="600" y="700" /></Array>
+            <mxPoint x="660" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <!-- COMPETENCY self-ref -->
+        <mxCell id="erd_r5" edge="1" parent="1" source="erd_comp" style="endArrow=classic;endFill=1;startArrow=classic;startFill=1;strokeColor=#888;fontColor=#888;fontSize=9;dashed=1;" target="erd_comp" value="parent">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="450" y="50" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- SESSION → MESSAGE -->
+        <mxCell id="erd_r6" edge="1" parent="1" source="erd_sess" style="endArrow=crow;endFill=0;startArrow=none;strokeColor=#333;fontColor=#333;fontSize=10;" target="erd_msg" value="1:N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- SESSION → QUIZ -->
+        <mxCell id="erd_r7" edge="1" parent="1" source="erd_sess" style="endArrow=crow;endFill=0;startArrow=none;strokeColor=#333;fontColor=#333;fontSize=10;" target="erd_quiz" value="1:N">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="150" y="520" /><mxPoint x="600" y="520" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- SESSION → FEYNMAN -->
+        <mxCell id="erd_r8" edge="1" parent="1" source="erd_sess" style="endArrow=crow;endFill=0;startArrow=none;strokeColor=#333;fontColor=#333;fontSize=10;" target="erd_feyn" value="1:N">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="150" y="530" /><mxPoint x="600" y="530" /><mxPoint x="600" y="700" /></Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- DOCUMENT → CHUNK -->
+        <mxCell id="erd_r9" edge="1" parent="1" source="erd_doc" style="endArrow=crow;endFill=0;startArrow=none;strokeColor=#333;fontColor=#333;fontSize=10;" target="erd_chunk" value="1:N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- SESSION → ARTIFACT -->
+        <mxCell id="erd_r10" edge="1" parent="1" source="erd_sess" style="endArrow=crow;endFill=0;startArrow=none;strokeColor=#3366cc;fontColor=#3366cc;fontSize=10;dashed=1;" target="erd_art" value="1:N (V3)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="150" y="530" /><mxPoint x="-50" y="530" /><mxPoint x="-50" y="870" /></Array>
+            <mxPoint x="40" y="870" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <!-- SESSION → TOOL_USAGE -->
+        <mxCell id="erd_r11" edge="1" parent="1" source="erd_sess" style="endArrow=crow;endFill=0;startArrow=none;strokeColor=#3366cc;fontColor=#3366cc;fontSize=10;dashed=1;" target="erd_tu" value="1:N (V3)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="150" y="530" /><mxPoint x="-30" y="530" /><mxPoint x="-30" y="935" /><mxPoint x="960" y="935" /></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══ LEGEND ═══ -->
+        <mxCell id="legend" value="" style="rounded=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1000" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_title" value="LEGENDE" style="text;html=1;fontSize=12;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="1005" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_uid" value="" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="50" y="1030" width="14" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_uidt" value="user_id (multi-user V3)" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="70" y="1028" width="160" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_new" value="" style="rounded=1;fillColor=#e6f3ff;strokeColor=#3366cc;" vertex="1" parent="1">
+          <mxGeometry x="250" y="1030" width="14" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_newt" value="Nouvelle table V3" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="270" y="1028" width="140" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_v3" value="" style="rounded=1;fillColor=#e6f3ff;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="50" y="1055" width="14" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_v3t" value="Nouveau champ V3" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="70" y="1053" width="140" height="18" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
