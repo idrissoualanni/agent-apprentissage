@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { SessionList } from "@/components/sidebar/SessionList";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { sessions as sessionsAPI } from "@/lib/api";
-import type { Session } from "@/lib/types";
+import type { Session, ChatMessage } from "@/lib/types";
 import {
   MessageSquarePlus,
   PanelLeftClose,
@@ -29,24 +29,29 @@ export default function ChatPage() {
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
+  // Cache des messages par session : le changement de session est instantane
+  // pour une session deja chargee (pas de re-appel reseau).
+  const [messagesCache, setMessagesCache] = useState<Record<number, ChatMessage[]>>({});
 
-  const loadSessions = useCallback(async () => {
-    try {
-      const data = await sessionsAPI.list();
-      setSessionList(data);
-      if (data.length > 0 && !activeSessionId) {
-        setActiveSessionId(data[0].id);
-      }
-    } catch (err) {
-      console.error("Failed to load sessions:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeSessionId]);
-
+  // Chargement UNIQUE au montage (avant : re-fetch a chaque changement de
+  // session a cause de la dependance activeSessionId).
   useEffect(() => {
-    loadSessions();
-  }, [loadSessions]);
+    let cancelled = false;
+    sessionsAPI.list().then((data) => {
+      if (cancelled) return;
+      setSessionList(data);
+      setActiveSessionId((prev) => prev ?? (data.length > 0 ? data[0].id : null));
+    }).catch((err) => {
+      console.error("Failed to load sessions:", err);
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const cacheMessages = useCallback((id: number, msgs: ChatMessage[]) => {
+    setMessagesCache((prev) => ({ ...prev, [id]: msgs }));
+  }, []);
 
   const handleNewSession = async () => {
     try {
@@ -151,7 +156,11 @@ export default function ChatPage() {
         {/* Chat window */}
         <div className="flex-1 overflow-hidden">
           {activeSessionId ? (
-            <ChatWindow sessionId={activeSessionId} />
+            <ChatWindow
+              sessionId={activeSessionId}
+              cachedMessages={messagesCache[activeSessionId]}
+              onCacheMessages={cacheMessages}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-zinc-500">
               <MessageSquarePlus size={48} className="mb-4 opacity-30" />

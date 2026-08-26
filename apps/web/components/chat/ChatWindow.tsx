@@ -13,9 +13,11 @@ import type { ChatMessage, ToolUsage, StreamEvent } from "@/lib/types";
 
 interface ChatWindowProps {
   sessionId: number;
+  cachedMessages?: ChatMessage[];
+  onCacheMessages?: (id: number, msgs: ChatMessage[]) => void;
 }
 
-export function ChatWindow({ sessionId }: ChatWindowProps) {
+export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatWindowProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
@@ -39,22 +41,37 @@ export function ChatWindow({ sessionId }: ChatWindowProps) {
     scrollToBottom();
   }, [messages, streamingText]);
 
-  // Load session messages (re-run on sessionId change + retry via loadAttempt)
+  // Load session messages (re-run on sessionId change + retry via loadAttempt).
+  // Si les messages sont deja en cache : affichage instantane, aucun appel reseau.
   useEffect(() => {
     if (!sessionId) return;
-    setMessages([]);
     setStreamingText("");
     setPendingConfirmation(null);
     setLoadError(null);
+    if (cachedMessages && cachedMessages.length > 0) {
+      setMessages(cachedMessages);
+      return;
+    }
+    setMessages([]);
     sessions.messages(sessionId).then((data) => {
       setMessages(data);
+      onCacheMessages?.(sessionId, data);
     }).catch((err) => {
       console.error(err);
       setLoadError(
         "Impossible de charger les messages (le serveur démarre peut-être). "
       );
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, loadAttempt]);
+
+  // Garde le cache parent synchronise (nouveaux messages envoyes/recus).
+  useEffect(() => {
+    if (sessionId && messages.length > 0) {
+      onCacheMessages?.(sessionId, messages);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
 
   const handleSend = useCallback(async (question: string, forceWebSearch: boolean = false) => {
     const trimmed = question.trim();
