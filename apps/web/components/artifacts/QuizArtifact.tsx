@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import type { QuizQuestion, QuizState } from "@/lib/types";
+import type { QuizQuestion, QuizState, QuizSubmitResponse } from "@/lib/types";
+import { chat } from "@/lib/api";
 
 interface QuizArtifactProps {
   title: string;
   content: string;
+  metadata?: Record<string, unknown>;
+  sessionId?: number;
 }
 
-export function QuizArtifact({ title, content }: QuizArtifactProps) {
+export function QuizArtifact({ title, content, metadata, sessionId }: QuizArtifactProps) {
   const [quizState, setQuizState] = useState<QuizState>(() => {
     let questions: QuizQuestion[] = [];
     try {
@@ -24,6 +27,8 @@ export function QuizArtifact({ title, content }: QuizArtifactProps) {
       submitted: false,
     };
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitResult, setSubmitResult] = useState<QuizSubmitResponse | null>(null);
 
   const handleSelect = (qIndex: number, oIndex: number) => {
     if (quizState.submitted) return;
@@ -34,7 +39,7 @@ export function QuizArtifact({ title, content }: QuizArtifactProps) {
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const correct = quizState.questions.reduce((sum, q, i) => {
       return sum + (q.correct_index === quizState.answers[i] ? 1 : 0);
     }, 0);
@@ -43,6 +48,23 @@ export function QuizArtifact({ title, content }: QuizArtifactProps) {
       submitted: true,
       score: correct,
     }));
+
+    // Correctif 2 : envoyer le score au backend pour mettre à jour la maîtrise Leitner
+    setSubmitting(true);
+    try {
+      const result = await chat.submitQuiz({
+        session_id: sessionId,
+        competency_id: (metadata?.competency_id as number) ?? undefined,
+        competency_name: (metadata?.competency_name as string) ?? undefined,
+        correct,
+        total: quizState.questions.length,
+      });
+      setSubmitResult(result);
+    } catch (err) {
+      console.error("Quiz submit error:", err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const allAnswered = quizState.answers.every((a) => a !== null);
@@ -112,15 +134,30 @@ export function QuizArtifact({ title, content }: QuizArtifactProps) {
         {!quizState.submitted && allAnswered && (
           <button
             onClick={handleSubmit}
-            className="w-full py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors"
+            disabled={submitting}
+            className="w-full py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
           >
-            Valider
+            {submitting ? "Envoi..." : "Valider"}
           </button>
         )}
 
         {quizState.submitted && (
-          <div className="text-center py-2 text-sm text-zinc-400">
-            Score : <span className="text-emerald-400 font-bold">{quizState.score}</span> / {quizState.questions.length}
+          <div className="text-center py-2 space-y-2">
+            <div className="text-sm text-zinc-400">
+              Score : <span className="text-emerald-400 font-bold">{quizState.score}</span> / {quizState.questions.length}
+            </div>
+            {/* Correctif 2 : feedback + maîtrise renvoyés par le backend */}
+            {submitResult && (
+              <div className="text-xs text-zinc-500 space-y-1">
+                <p className="text-zinc-300">{submitResult.feedback}</p>
+                {submitResult.mastery && (
+                  <p>
+                    Maîtrise : <span className="text-primary-400 font-medium">{Math.round(submitResult.mastery.score * 100)}%</span>
+                    {" · "}boîte Leitner {submitResult.mastery.leitner_box}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

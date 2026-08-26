@@ -1,7 +1,8 @@
 """État du graphe LangGraph V3 — TypedDict avec tous les champs nécessaires."""
 
-from typing import Sequence, Optional, TypedDict
+from typing import Sequence, Optional, TypedDict, Annotated
 from langchain_core.messages import BaseMessage
+from langgraph.graph.message import add_messages
 
 
 class AgentState(TypedDict):
@@ -11,6 +12,11 @@ class AgentState(TypedDict):
     question: str
     user_id: str  # V3: multi-user
 
+    # ─── Format standard LangGraph Studio ─────────────────────────────────
+    # Studio envoie les messages au format `messages` (liste de BaseMessage).
+    # Le réducteur add_messages concatène l'historique automatiquement.
+    messages: Annotated[list[BaseMessage], add_messages]
+
     # ─── Historique conversationnel ───────────────────────────────────────
     chat_history: Sequence[BaseMessage]
 
@@ -18,6 +24,8 @@ class AgentState(TypedDict):
     rag_needed: bool
     context: str
     rag_confidence: Optional[float]  # V3: score de confiance RAG
+    rag_relevant: bool               # Correctif 5 : le contexte est-il pertinent ?
+    rag_reason: str                  # Correctif 5 : raison du rejet/acceptation RAG
 
     # ─── Profil apprenant ────────────────────────────────────────────────
     learner_profile: dict
@@ -30,6 +38,9 @@ class AgentState(TypedDict):
     diagnostic_questions: list[str]
     diagnostic_answers: list[str]
     estimated_level: Optional[str]
+    diagnostic_active: bool          # Correctif 1 : True pendant la boucle de diagnostic
+    diagnostic_current_index: int    # Correctif 1 : index de la question en cours
+    next_step: Optional[str]         # Correctif 4 : "expliquer" | "approfondir" | "continuer"
 
     # ─── Quiz ────────────────────────────────────────────────────────────
     quiz_questions: list[dict]
@@ -60,6 +71,15 @@ class AgentState(TypedDict):
     thread_id: Optional[str]
     session_id: Optional[int]  # V3: DB session ID
 
+    # ─── Phase 4 : mémoire de session (sous-agent) ──────────────────────
+    turn_count: int                      # nombre de tours dans la session
+    session_summary: Optional[dict]      # résumé compacté (faits + texte)
+    learner_context: Optional[dict]      # contexte apprenant injecté (Phase 4)
+
+    # ─── Phase 5 : method evaluator ─────────────────────────────────────
+    last_method_success: Optional[bool]   # derniere methode a-t-elle reussi ?
+    last_inferred_score: Optional[float]  # score infere (explicite ou implicite)
+
     # ─── V3: Transparence outils ─────────────────────────────────────────
     tool_transparency: list[dict]  # [{name, duration_ms, success}]
 
@@ -72,6 +92,7 @@ class AgentState(TypedDict):
 
     # ─── V3: Web search ──────────────────────────────────────────────────
     web_search_results: Optional[list]
+    force_web_search: bool  # V3: toggle UI pour forcer la recherche web
 
     # ─── Réponse finale ──────────────────────────────────────────────────
     answer: str
@@ -86,5 +107,25 @@ STATE_DEFAULTS = {
     "streaming": True,
     "model_override": None,
     "web_search_results": None,
+    "force_web_search": False,
     "session_id": None,
+    # Correctif 1 — diagnostic en boucle
+    "diagnostic_active": False,
+    "diagnostic_current_index": 0,
+    "diagnostic_questions": [],
+    "diagnostic_answers": [],
+    # Correctif 4 — feedback adaptatif
+    "next_step": None,
+    # Correctif 5 — double-check RAG
+    "rag_relevant": False,
+    "rag_reason": "",
+    # Phase 1 — mémoire de session
+    "chat_history": [],
+    # Phase 4 — sous-agent mémoire
+    "turn_count": 0,
+    "session_summary": None,
+    "learner_context": None,
+    # Phase 5 — method evaluator
+    "last_method_success": None,
+    "last_inferred_score": None,
 }

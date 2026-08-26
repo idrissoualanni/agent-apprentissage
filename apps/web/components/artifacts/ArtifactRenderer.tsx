@@ -5,15 +5,18 @@ import { QuizArtifact } from "./QuizArtifact";
 
 interface ArtifactRendererProps {
   artifact: Artifact;
+  sessionId?: number;
 }
 
-export function ArtifactRenderer({ artifact }: ArtifactRendererProps) {
+export function ArtifactRenderer({ artifact, sessionId }: ArtifactRendererProps) {
   switch (artifact.artifact_type) {
     case "quiz":
       return (
         <QuizArtifact
           title={artifact.title}
           content={artifact.content}
+          metadata={artifact.metadata}
+          sessionId={sessionId}
         />
       );
     case "schema":

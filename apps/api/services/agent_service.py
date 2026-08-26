@@ -29,12 +29,28 @@ def _get_model_manager() -> ModelManager:
 def _get_retriever():
     global _retriever
     if _retriever is None:
-        _retriever = retriever_mod.get_or_create_retriever(
-            model_name=config.OLLAMA_EMBEDDING_MODEL,
-            top_k=config.TOP_K,
-            persist_dir=str(config.CHROMA_DIR),
-        )
+        try:
+            _retriever = retriever_mod.get_or_create_retriever(
+                model_name=config.OLLAMA_EMBEDDING_MODEL,
+                top_k=config.TOP_K,
+                persist_dir=str(config.CHROMA_DIR),
+            )
+        except Exception as e:
+            # En production sans embeddings disponibles (Ollama local absent),
+            # on degrade gracieusement : le RAG retourne un retriever vide.
+            logger.warning(f"Retriever indisponible ({e}); RAG desactive.")
+            _retriever = _EmptyRetriever()
     return _retriever
+
+
+class _EmptyRetriever:
+    """Retriever vide utilise quand les embeddings sont indisponibles."""
+
+    def invoke(self, query, **kwargs):
+        return []
+
+    def get_relevant_documents(self, query, **kwargs):
+        return []
 
 
 def get_graph():
@@ -54,6 +70,7 @@ def run_agent(
     user_id: str = "default_user",
     user_confirmed: Optional[bool] = None,
     model_override: Optional[str] = None,
+    force_web_search: bool = False,
 ) -> dict:
     """Exécute l'agent sur une question et retourne la réponse.
 
@@ -63,6 +80,7 @@ def run_agent(
         user_id: ID utilisateur V3
         user_confirmed: Confirmation HITL (True/False/None)
         model_override: Forcer un modèle spécifique
+        force_web_search: Si True, force la méthode web_search
 
     Returns:
         dict avec answer, method, artifacts, tool_transparency, etc.
@@ -79,6 +97,7 @@ def run_agent(
         "user_id": user_id,
         "thread_id": thread_id,
         "model_override": model_override,
+        "force_web_search": force_web_search,
     }
 
     if user_confirmed is not None:
@@ -120,6 +139,7 @@ def run_agent_streaming(
     thread_id: Optional[str] = None,
     user_id: str = "default_user",
     model_override: Optional[str] = None,
+    force_web_search: bool = False,
 ):
     """Exécute l'agent en mode streaming (yield token par token).
 
@@ -139,6 +159,7 @@ def run_agent_streaming(
         "user_id": user_id,
         "thread_id": thread_id,
         "model_override": model_override,
+        "force_web_search": force_web_search,
     }
 
     config_dict = {"configurable": {"thread_id": thread_id}}
@@ -156,12 +177,21 @@ def run_agent_streaming(
                         full_answer = answer
                         yield {"token": new_text, "done": False}
 
+        # Correctif 2 : récupérer les artefacts de l'état final
+        artifacts = []
+        try:
+            final_state = graph.get_state(config_dict)
+            artifacts = final_state.values.get("artifacts", []) if final_state else []
+        except Exception:
+            pass
+
         yield {
             "token": "",
             "done": True,
             "metadata": {
                 "thread_id": thread_id,
                 "method": full_answer and "completed",
+                "artifacts": artifacts,
             },
         }
     except Exception as e:

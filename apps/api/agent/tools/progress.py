@@ -117,6 +117,56 @@ def update_mastery_after_feynman(competency_id: int, score: float) -> str:
 
 
 @tool
+def update_mastery_from_score(competency_id: int, correct: int, total: int) -> str:
+    """Met à jour la maîtrise d'une compétence à partir d'un score de quiz (correct/total).
+
+    Correctif 2 : utilisé par l'endpoint /quiz-submit quand l'utilisateur valide
+    un quiz interactif (artefact) côté frontend.
+
+    Args:
+        competency_id: ID de la compétence dans la base
+        correct: Nombre de bonnes réponses
+        total: Nombre total de questions
+
+    Returns:
+        JSON string avec nouveau score, boîte Leitner, statut, prochaine révision
+    """
+    from apps.api.db import crud
+
+    if total <= 0:
+        total = 1
+    ratio = max(0.0, min(1.0, correct / total))
+
+    current = crud.get_mastery(competency_id)
+
+    if current is None:
+        score = ratio
+        leitner_box = 2 if ratio >= 0.7 else (1 if ratio >= 0.4 else 0)
+    else:
+        old_score = current["score"]
+        # Moyenne pondérée : 60% ancien score, 40% nouveau ratio
+        score = old_score * 0.6 + ratio * 0.4
+        leitner_box = current["leitner_box"]
+        if ratio >= 0.7:
+            leitner_box = min(5, leitner_box + 1)
+        elif ratio < 0.4:
+            leitner_box = max(0, leitner_box - 1)
+
+    status = _compute_status(score, leitner_box)
+    crud.upsert_mastery(
+        competency_id, score, leitner_box, status,
+        next_review_at=_next_review(leitner_box),
+    )
+
+    return json.dumps({
+        "score": round(score, 2),
+        "leitner_box": leitner_box,
+        "status": status,
+        "next_review": _next_review(leitner_box),
+    }, ensure_ascii=False)
+
+
+@tool
 def get_progress_summary(domain: str) -> str:
     """Retourne un résumé de progression pour un domaine donné.
 

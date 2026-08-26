@@ -15,6 +15,26 @@ env/
 
 # Environment
 .env
+.env.studio
+.env.local
+.env*.local
+
+# Vercel
+.vercel/
+apps/web/.vercel/
+
+# Logs
+*.log
+backend.log
+backend.err.log
+
+# Fichiers locaux a ne JAMAIS committer
+test_key.py
+web_research_results.json
+persist/
+
+# LangGraph Studio runtime
+.langgraph_api/
 
 # Databases
 *.db
@@ -24,6 +44,11 @@ env/
 
 # ChromaDB data (recreated from PDFs)
 data/chroma/
+
+# Next.js build
+apps/web/.next/
+apps/web/out/
+*.tsbuildinfo
 
 # OS
 .DS_Store

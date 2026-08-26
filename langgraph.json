@@ -1,0 +1,8 @@
+{
+  "dependencies": ["./apps/api"],
+  "graphs": {
+    "agent-apprentissage": "./apps/api/agent/studio_graph.py:graph"
+  },
+  "env": ".env.studio",
+  "python_version": "3.12"
+}

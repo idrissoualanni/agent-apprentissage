@@ -73,12 +73,50 @@ Génère 3 questions calibrées pour estimer le niveau de l'utilisateur.
 
 Format JSON STRICT :
 {{
-  "questions": ["question 1", "question 2", "question 3"],
-  "estimated_level": "debutant" | "intermediaire" | "avance"
+  "questions": ["question 1", "question 2", "question 3"]
 }}
 
-Les questions doivent aller du général au spécifique."""),
+Les questions doivent aller du général au spécifique (facile → difficile).
+Ne donne PAS de réponse aux questions, génère seulement les questions."""),
     ("human", "{question}"),
+])
+
+# Correctif 1 : évalue le niveau réel APRÈS les réponses de l'utilisateur
+DIAGNOSTIC_EVAL_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", """Tu es un évaluateur pédagogique. Le domaine est : {domain}.
+Voici les questions posées et les réponses de l'apprenant. Estime son niveau réel.
+
+Questions :
+{questions}
+
+Réponses de l'apprenant :
+{answers}
+
+Analyse la qualité, la précision et la profondeur des réponses, puis réponds en JSON STRICT :
+{{
+  "estimated_level": "debutant" | "intermediaire" | "avance",
+  "justification": "courte explication"
+}}"""),
+    ("human", "Estime le niveau de l'apprenant."),
+])
+
+# Correctif 5 : validation LLM de la pertinence du contexte RAG
+RELEVANCE_CHECK_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", """Tu es un filtre de pertinence. On t'a donné une question et des extraits de documents.
+Détermine si les extraits contiennent réellement une information utile pour répondre à la question.
+
+Question : {question}
+
+Extraits :
+{context}
+
+Réponds en JSON STRICT :
+{{
+  "is_relevant": true | false,
+  "confidence": 0.0 à 1.0,
+  "reason": "courte explication"
+}}"""),
+    ("human", "Les extraits sont-ils pertinents pour la question ?"),
 ])
 
 RESPONSE_PROMPT = ChatPromptTemplate.from_messages([
@@ -177,7 +215,22 @@ def router_profil_node(state: AgentState, retriever, model_manager, db_path=None
     domain = profile.get("domain", "")
     question = state.get("question", "")
 
+    # Compat LangGraph Studio : si `question` est vide, extraire depuis `messages`
+    if not question and state.get("messages"):
+        last = state["messages"][-1]
+        content = getattr(last, "content", "")
+        # Le contenu peut être une liste de parts [{'type':'text','text':...}]
+        if isinstance(content, list):
+            question = " ".join(
+                p.get("text", "") for p in content if isinstance(p, dict) and p.get("type") == "text"
+            ).strip()
+        else:
+            question = str(content).strip()
+
     is_meta = _is_meta_question(question)
+
+    # Phase 1 — mémoire de session : ajouter la question de l'utilisateur à l'historique
+    new_history = list(state.get("chat_history", [])) + [HumanMessage(content=question)]
 
     if not domain:
         return {
@@ -185,6 +238,8 @@ def router_profil_node(state: AgentState, retriever, model_manager, db_path=None
             "method": "diagnostic",
             "active_competency": None,
             "rag_needed": not is_meta,
+            "question": question,
+            "chat_history": new_history,
         }
 
     return {
@@ -192,11 +247,17 @@ def router_profil_node(state: AgentState, retriever, model_manager, db_path=None
         "method": "scaffold",
         "active_competency": None,
         "rag_needed": not is_meta,
+        "question": question,
+        "chat_history": new_history,
     }
 
 
 def diagnostic_node(state: AgentState, model_manager, db_path=None) -> dict:
-    """Pose des questions de diagnostic si le profil est incomplet."""
+    """Correctif 1 : génère les questions de diagnostic et pose la PREMIÈRE.
+
+    Ne devine plus le niveau : il sera estimé après les réponses de l'utilisateur
+    (voir answer_processing_node). N'écrit plus dans la DB à ce stade.
+    """
     llm = model_manager.get_llm("diagnostic")
     domain = state["learner_profile"].get("domain", "ce domaine")
 
@@ -213,43 +274,104 @@ def diagnostic_node(state: AgentState, model_manager, db_path=None) -> dict:
         if content.startswith("json"):
             content = content[4:]
 
-    estimated_level = "debutant"
     try:
         data = json.loads(content.strip())
         questions = data.get("questions", [])
-        estimated_level = data.get("estimated_level", "debutant")
     except json.JSONDecodeError:
-        questions = [f"Que savez-vous sur {domain} ?"]
+        questions = []
 
-    comps = crud.get_competencies(domain, db_path)
-    level_to_score = {"debutant": 0.2, "intermediaire": 0.5, "avance": 0.8}
-    initial_score = level_to_score.get(estimated_level, 0.2)
+    if not questions:
+        questions = [
+            f"Que savez-vous sur {domain} ?",
+            f"Quels concepts de {domain} vous semblent familiers ?",
+            f"Qu'aimeriez-vous apprendre en {domain} ?",
+        ]
 
-    for comp in comps:
-        existing = crud.get_mastery(comp["id"], db_path)
-        if existing is None:
-            crud.upsert_mastery(
-                competency_id=comp["id"],
-                score=initial_score,
-                leitner_box=0,
-                status="new",
-                db_path=db_path,
-            )
-
-    crud.update_profile(domain=domain, niveau_global=estimated_level, db_path=db_path)
-
+    # Pose la première question, active la boucle de diagnostic
+    first_question = questions[0]
     return {
         "diagnostic_questions": questions,
-        "estimated_level": estimated_level,
+        "diagnostic_answers": [],
+        "diagnostic_active": True,
+        "diagnostic_current_index": 0,
         "method": "diagnostic",
-        "answer": response.content,
+        "answer": (
+            f"Avant de commencer, j'aimerais estimer ton niveau en {domain}. "
+            f"Réponds à ces {len(questions)} questions, une par une.\n\n"
+            f"**Question 1/{len(questions)}** : {first_question}"
+        ),
     }
 
 
-def retrieval_node(state: AgentState, retriever) -> dict:
-    """Récupère le contexte RAG."""
-    docs = retriever.invoke(state["question"])
-    return {"context": format_docs(docs)}
+def retrieval_node(state: AgentState, retriever, model_manager=None) -> dict:
+    """Correctif 5 : récupère le contexte RAG avec double-check de pertinence.
+
+    1. Recherche sémantique avec score (seuil RAG_SEMANTIC_THRESHOLD).
+    2. Si des chunks passent le seuil et que RAG_DOUBLE_CHECK_ENABLED,
+       validation LLM via RELEVANCE_CHECK_PROMPT.
+    3. Retourne context + rag_relevant + rag_confidence + rag_reason.
+    """
+    from apps.api.rag.retriever import retrieve_semantic
+    import apps.api.config as config
+
+    question = state["question"]
+    threshold = getattr(config, "RAG_SEMANTIC_THRESHOLD", 0.3)
+    top_k = getattr(config, "TOP_K", 3)
+
+    docs, best_score, has_relevant = retrieve_semantic(
+        retriever, question, top_k=top_k, threshold=threshold
+    )
+
+    # Aucun chunk pertinent → pas de contexte
+    if not has_relevant or not docs:
+        return {
+            "context": "",
+            "rag_relevant": False,
+            "rag_confidence": best_score,
+            "rag_reason": f"Aucun chunk au-dessus du seuil {threshold} (best={best_score:.2f})",
+        }
+
+    context_text = format_docs(docs)
+
+    # Double-check LLM (désactivable)
+    if getattr(config, "RAG_DOUBLE_CHECK_ENABLED", True) and model_manager is not None:
+        try:
+            llm = model_manager.get_llm("relevance_check")
+            msgs = RELEVANCE_CHECK_PROMPT.format_messages(
+                question=question, context=context_text
+            )
+            content = llm.invoke(msgs).content.strip()
+            if content.startswith("```"):
+                content = content.split("```")[1]
+                if content.startswith("json"):
+                    content = content[4:]
+            data = json.loads(content.strip())
+            is_relevant = data.get("is_relevant", True)
+            confidence = float(data.get("confidence", best_score))
+            reason = data.get("reason", "")
+            if not is_relevant:
+                return {
+                    "context": "",
+                    "rag_relevant": False,
+                    "rag_confidence": confidence,
+                    "rag_reason": f"Rejeté par LLM : {reason}",
+                }
+            return {
+                "context": context_text,
+                "rag_relevant": True,
+                "rag_confidence": confidence,
+                "rag_reason": reason,
+            }
+        except Exception as e:
+            logger.warning(f"Double-check RAG échoué ({e}); on garde le contexte.")
+
+    # Pas de double-check → on garde le contexte si le seuil est passé
+    return {
+        "context": context_text,
+        "rag_relevant": True,
+        "rag_confidence": best_score,
+        "rag_reason": "Seuil de similarité atteint (double-check désactivé)",
+    }
 
 
 def _detect_active_competency(question: str, domain: str, db_path) -> Optional[str]:
@@ -285,9 +407,92 @@ def _detect_active_competency(question: str, domain: str, db_path) -> Optional[s
     return best_match if best_score >= 2 else None
 
 
-def answer_processing_node(state: AgentState, db_path=None) -> dict:
-    """Traite la réponse utilisateur si on attend une réponse quiz ou une explication Feynman."""
+def _process_diagnostic_answer(state: AgentState, model_manager, db_path=None) -> dict:
+    """Correctif 1 : traite une réponse de diagnostic, pose la question suivante
+    ou estime le niveau final quand toutes les questions ont reçu une réponse."""
+    questions = state.get("diagnostic_questions", [])
+    answers = list(state.get("diagnostic_answers", []))
+    index = state.get("diagnostic_current_index", 0)
+    domain = state.get("learner_profile", {}).get("domain", "ce domaine")
+
+    # Enregistrer la réponse à la question courante
+    if index < len(questions):
+        answers.append(state.get("question", "").strip())
+    next_index = index + 1
+
+    # S'il reste des questions → poser la suivante
+    if next_index < len(questions):
+        return {
+            "diagnostic_answers": answers,
+            "diagnostic_current_index": next_index,
+            "diagnostic_active": True,
+            "method": "diagnostic",
+            "answer": (
+                f"**Question {next_index + 1}/{len(questions)}** : "
+                f"{questions[next_index]}"
+            ),
+        }
+
+    # Toutes les réponses collectées → estimer le niveau réel via le LLM
+    estimated_level = "debutant"
+    justification = ""
+    if model_manager is not None:
+        try:
+            llm = model_manager.get_llm("diagnostic")
+            questions_txt = "\n".join(f"{i+1}. {q}" for i, q in enumerate(questions))
+            answers_txt = "\n".join(f"{i+1}. {a}" for i, a in enumerate(answers))
+            msgs = DIAGNOSTIC_EVAL_PROMPT.format_messages(
+                domain=domain, questions=questions_txt, answers=answers_txt,
+            )
+            content = llm.invoke(msgs).content.strip()
+            if content.startswith("```"):
+                content = content.split("```")[1]
+                if content.startswith("json"):
+                    content = content[4:]
+            data = json.loads(content.strip())
+            estimated_level = data.get("estimated_level", "debutant")
+            justification = data.get("justification", "")
+        except Exception as e:
+            logger.warning(f"Évaluation diagnostic échouée ({e}); niveau par défaut.")
+
+    # Initialiser la maîtrise des compétences du domaine avec le niveau estimé
+    level_to_score = {"debutant": 0.2, "intermediaire": 0.5, "avance": 0.8}
+    initial_score = level_to_score.get(estimated_level, 0.2)
+    comps = crud.get_competencies(domain, db_path)
+    for comp in comps:
+        if crud.get_mastery(comp["id"], db_path) is None:
+            crud.upsert_mastery(
+                competency_id=comp["id"],
+                score=initial_score,
+                leitner_box=0,
+                status="new",
+                db_path=db_path,
+            )
+    crud.update_profile(domain=domain, niveau_global=estimated_level, db_path=db_path)
+
+    level_label = {"debutant": "débutant", "intermediaire": "intermédiaire", "avance": "avancé"}
+    return {
+        "diagnostic_answers": answers,
+        "diagnostic_current_index": next_index,
+        "diagnostic_active": False,
+        "estimated_level": estimated_level,
+        "method": "diagnostic",
+        "answer": (
+            f"Merci ! D'après tes réponses, j'estime ton niveau en {domain} : "
+            f"**{level_label.get(estimated_level, estimated_level)}**.\n\n"
+            f"{justification}\n\n"
+            f"Je vais adapter mes explications. Pose-moi ta première question !"
+        ),
+    }
+
+
+def answer_processing_node(state: AgentState, model_manager=None, db_path=None) -> dict:
+    """Traite la réponse utilisateur (diagnostic en boucle, quiz, ou explication Feynman)."""
     updates = {}
+
+    # ── Correctif 1 : boucle de diagnostic ────────────────────────────────
+    if state.get("diagnostic_active") and state.get("diagnostic_questions"):
+        return _process_diagnostic_answer(state, model_manager, db_path)
 
     if state.get("quiz_active") and state.get("quiz_questions"):
         user_input = state["question"].strip()
@@ -341,14 +546,34 @@ def method_selection_node(state: AgentState, db_path=None) -> dict:
     if not active_competency and not state.get("quiz_active") and not state.get("feynman_explanation"):
         active_competency = _detect_active_competency(state["question"], domain, db_path)
 
+    # ── Correctif 3 : récupérer le score de maîtrise de la compétence active ──
+    mastery_score = None
+    if active_competency:
+        cid = _resolve_competency_id(active_competency, state, db_path)
+        if cid is not None:
+            m = crud.get_mastery(cid, db_path)
+            if m:
+                mastery_score = m.get("score")
+
     if state.get("quiz_active"):
         method = "quiz"
     elif state.get("feynman_explanation"):
         method = "feynman"
+    elif state.get("force_web_search"):
+        # V3 : toggle UI "recherche web" activé → on force la méthode web_search
+        method = "web_search"
     elif _needs_revision(state.get("question", "")):
         method = "revision"
     elif _needs_web_search(state.get("question", "")):
         method = "web_search"
+    elif mastery_score is not None:
+        # Méthode basée sur la maîtrise de la compétence active (pas le niveau global)
+        if mastery_score < 0.4:
+            method = "scaffold"
+        elif mastery_score < 0.7:
+            method = "socratic"
+        else:
+            method = "feynman"
     elif level in ("debutant", ""):
         method = "scaffold"
     elif level == "intermediaire":
@@ -356,13 +581,43 @@ def method_selection_node(state: AgentState, db_path=None) -> dict:
     else:
         method = "feynman"
 
+    # ── Phase 5 : hook ε-greedy bandit ──
+    # Si on a des donnees d'efficacite pour cette competence, on exploite la
+    # meilleure methode connue (1-ε) ou on explore une autre methode (ε).
+    if active_competency and method in ("scaffold", "socratic", "feynman"):
+        try:
+            from apps.api.agent.nodes_context import _epsilon_greedy_method, _resolve_competency_id as _rcid
+            cid = _rcid(active_competency, db_path=db_path)
+            if cid is not None:
+                method = _epsilon_greedy_method(cid, method, db_path=db_path)
+        except Exception:
+            pass  # pas de donnees d'efficacite → methode par defaut
+
     return {"method": method, "active_competency": active_competency}
 
 
 def generate_node(state: AgentState, model_manager) -> dict:
     """Génère la réponse selon la méthode choisie."""
-    if state.get("answer") and state.get("method") in ("quiz", "feynman", "artifact", "web_search", "revision"):
+    # Ne pas écraser une réponse déjà produite (diagnostic, quiz, feynman, etc.)
+    if state.get("answer") and state.get("method") in ("quiz", "feynman", "artifact", "web_search", "revision", "diagnostic"):
         return {}
+
+    # Correctif 5 : si le RAG était requis mais non pertinent, répondre honnêtement
+    if state.get("rag_needed") and state.get("rag_relevant") is False:
+        reason = state.get("rag_reason", "")
+        _answer = (
+            "Je n'ai pas trouvé cette information dans tes documents. "
+            "Je préfère ne pas inventer de réponse.\n\n"
+            "Tu peux :\n"
+            "- Uploader un document qui couvre ce sujet (bouton + ), ou\n"
+            "- Activer la recherche web (icône globe) pour que je cherche en ligne."
+        )
+        return {
+            "answer": _answer,
+            "rag_reason": reason,
+            # Phase 1 — mémoire de session : ajouter la réponse à l'historique
+            "chat_history": list(state.get("chat_history", [])) + [AIMessage(content=_answer)],
+        }
 
     llm = model_manager.get_llm("answer")
     method = state.get("method", "scaffold")
@@ -398,7 +653,22 @@ def generate_node(state: AgentState, model_manager) -> dict:
 
     messages = prompt.format_messages(**format_kwargs)
     response = llm.invoke(messages)
-    return {"answer": response.content}
+    answer = response.content
+
+    # Correctif 4 : suffixer d'une invitation adaptée selon next_step
+    next_step = state.get("next_step")
+    if next_step == "expliquer":
+        answer += "\n\nVeux-tu que je t'explique cette notion plus simplement ?"
+    elif next_step == "approfondir":
+        answer += "\n\nBien joué ! On approfondit, ou on passe à un quiz plus difficile ?"
+    elif next_step == "continuer":
+        answer += "\n\nOn continue sur cette lancée ?"
+
+    return {
+        "answer": answer,
+        # Phase 1 — mémoire de session : ajouter la réponse à l'historique
+        "chat_history": list(state.get("chat_history", [])) + [AIMessage(content=answer)],
+    }
 
 
 def tool_execution_node(state: AgentState, model_manager) -> dict:
@@ -418,10 +688,25 @@ def tool_execution_node(state: AgentState, model_manager) -> dict:
         })
         questions = json.loads(result_str)
         elapsed = (time.time() - t0) * 1000
+
+        # Correctif 2 : résoudre le competency_id pour la soumission du score
+        competency_id = _resolve_competency_id(competency, state, db_path=None)
+
+        n = len(questions)
         return {
             "quiz_questions": questions,
             "quiz_active": True,
-            "answer": _format_quiz_for_display(questions),
+            "answer": f"Voici un quiz de {n} question{'s' if n > 1 else ''} sur « {competency} ». Réponds puis valide !",
+            # Correctif 2 : le quiz est livré en artefact interactif
+            "artifacts": [{
+                "artifact_type": "quiz",
+                "title": f"Quiz — {competency}",
+                "content": json.dumps(questions, ensure_ascii=False),
+                "metadata": {
+                    "competency_id": competency_id,
+                    "competency_name": competency,
+                },
+            }],
             "tool_transparency": _track_tool(state, "generate_quiz", elapsed, True),
         }
 
@@ -519,9 +804,15 @@ def tool_execution_node(state: AgentState, model_manager) -> dict:
 
 
 def confirmation_node(state: AgentState) -> dict:
-    """Human-in-the-loop : demande confirmation avant d'exécuter un outil lourd."""
+    """Human-in-the-loop via interrupt() : pause l'exécution et attend la confirmation.
+
+    Dans LangGraph Studio, interrupt() affiche un champ pour saisir la réponse
+    (true/false ou oui/non). L'exécution reprend avec la valeur fournie via
+    Command(resume=...).
+    """
+    from langgraph.types import interrupt
+
     method = state.get("method", "")
-    user_confirmed = state.get("user_confirmed")
 
     CONFIRMATION_METHODS = {
         "quiz": "Je vais te préparer un quiz. Tu es prêt(e) ?",
@@ -529,23 +820,23 @@ def confirmation_node(state: AgentState) -> dict:
         "artifact": "Je vais créer un artefact pédagogique pour t'aider. On y va ?",
     }
 
-    if user_confirmed is None and method in CONFIRMATION_METHODS:
-        return {
-            "pending_confirmation": True,
-            "confirmation_type": method,
-            "confirmation_prompt": CONFIRMATION_METHODS[method],
-        }
-
-    if user_confirmed is True:
+    if method in CONFIRMATION_METHODS:
+        # Pause l'exécution et attend la réponse de l'utilisateur
+        user_response = interrupt({
+            "question": CONFIRMATION_METHODS[method],
+            "type": method,
+        })
+        # L'exécution reprend ici avec la valeur de Command(resume=...)
+        accepted = user_response in (True, "true", "yes", "oui", "ok", "confirm", "1", 1)
+        if accepted:
+            return {
+                "pending_confirmation": False,
+                "user_confirmed": True,
+                "confirmation_type": method,
+            }
         return {
             "pending_confirmation": False,
-            "user_confirmed": None,
-        }
-
-    if user_confirmed is False:
-        return {
-            "pending_confirmation": False,
-            "user_confirmed": None,
+            "user_confirmed": False,
             "method": "scaffold",
             "answer": "Pas de souci, on fait autre chose ! Pose-moi une question.",
         }
@@ -571,6 +862,13 @@ def evaluation_memory_node(state: AgentState, db_path=None) -> dict:
             })
             result = json.loads(result_str)
             updates["leitner_action"] = "promote" if score >= 0.7 else "demote" if score < 0.4 else "stay"
+            # Correctif 4 : feedback adaptatif selon le score Feynman
+            if score < 0.4:
+                updates["next_step"] = "expliquer"
+            elif score >= 0.7:
+                updates["next_step"] = "approfondir"
+            else:
+                updates["next_step"] = "continuer"
 
             session_id = _resolve_session_id(state, db_path)
             if session_id is not None:
@@ -597,6 +895,8 @@ def evaluation_memory_node(state: AgentState, db_path=None) -> dict:
             })
             result = json.loads(result_str)
             updates["leitner_action"] = "promote" if is_correct else "demote"
+            # Correctif 4 : feedback adaptatif selon le résultat du quiz
+            updates["next_step"] = "approfondir" if is_correct else "expliquer"
 
             session_id = _resolve_session_id(state, db_path)
             quiz_questions = state.get("quiz_questions", [])

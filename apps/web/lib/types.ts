@@ -15,6 +15,7 @@ export interface ChatMessage {
   content: string;
   method?: string;
   tools_used?: ToolUsage[];
+  artifacts?: Artifact[];
   created_at: string;
 }
 
@@ -98,13 +99,13 @@ export interface ToolUsage {
 export type ArtifactType = "schema" | "quiz" | "code" | "chart";
 
 export interface Artifact {
-  id: number;
-  session_id: number;
+  id?: number;
+  session_id?: number;
   artifact_type: ArtifactType;
   title: string;
   content: string;
   metadata?: Record<string, unknown>;
-  created_at: string;
+  created_at?: string;
 }
 
 // ── Models ───────────────────────────────────────────────────────────────
@@ -124,6 +125,7 @@ export interface ChatRequest {
   session_id: number;
   user_id?: string;
   model_override?: string;
+  force_web_search?: boolean;
 }
 
 export interface ChatResponse {
@@ -141,6 +143,30 @@ export interface ConfirmationRequest {
   session_id: number;
   accepted: boolean;
   message_id?: number;
+}
+
+// ── Quiz submit (Correctif 2) ────────────────────────────────────────────
+export interface QuizSubmitRequest {
+  session_id?: number;
+  competency_id?: number;
+  competency_name?: string;
+  correct: number;
+  total: number;
+  user_id?: string;
+}
+
+export interface QuizSubmitResponse {
+  correct: number;
+  total: number;
+  ratio: number;
+  mastery?: {
+    score: number;
+    leitner_box: number;
+    status: string;
+    next_review: string;
+  };
+  feedback: string;
+  suggestion: "expliquer" | "approfondir" | "continuer";
 }
 
 // ── SSE Events ───────────────────────────────────────────────────────────

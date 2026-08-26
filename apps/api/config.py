@@ -23,6 +23,16 @@ OLLAMA_NUM_GPU = int(os.getenv("OLLAMA_NUM_GPU", "0"))
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "")
 OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", "")
 
+# ─── Base de donnees (production : Neon Postgres) ──────────────────────────
+# Si DATABASE_URL est definie, PostgreSQL est utilise ; sinon SQLite local.
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+
+# ─── Chroma Cloud (production) ─────────────────────────────────────────────
+# Si CHROMA_CLOUD_API_KEY est definie, Chroma Cloud est utilise ; sinon Chroma local.
+CHROMA_CLOUD_API_KEY = os.getenv("CHROMA_CLOUD_API_KEY", "")
+CHROMA_CLOUD_TENANT = os.getenv("CHROMA_CLOUD_TENANT", "")
+CHROMA_CLOUD_DATABASE = os.getenv("CHROMA_CLOUD_DATABASE", "")
+
 # ─── Modeles disponibles ────────────────────────────────────────────────────
 _available_raw = os.getenv(
     "AVAILABLE_MODELS",
@@ -41,14 +51,16 @@ RAG_MIN_CONFIDENCE = float(os.getenv("RAG_MIN_CONFIDENCE", "0.6"))
 RAG_DOUBLE_CHECK_ENABLED = os.getenv("RAG_DOUBLE_CHECK_ENABLED", "true").lower() == "true"
 
 # ─── Paths ────────────────────────────────────────────────────────────────
-# En V3, on garde la compat avec V2 (memes fichiers DB)
-PDF_DIR = PROJECT_ROOT / "data" / "documents"
-CHROMA_DIR = PROJECT_ROOT / "data" / "chroma"
-DB_PATH = PROJECT_ROOT / "db" / "agent.db"
-CHECKPOINT_DB = PROJECT_ROOT / "checkpoints.db"
+# En V3, on garde la compat avec V2 (memes fichiers DB).
+# Les paths sont surchargeables via l'environnement (necessaire pour Fly.io
+# qui monte un volume persistant sur /app/persist).
+PDF_DIR = Path(os.getenv("PDF_DIR", str(PROJECT_ROOT / "data" / "documents")))
+CHROMA_DIR = Path(os.getenv("CHROMA_DIR", str(PROJECT_ROOT / "data" / "chroma")))
+DB_PATH = Path(os.getenv("DB_PATH", str(PROJECT_ROOT / "db" / "agent.db")))
+CHECKPOINT_DB = Path(os.getenv("CHECKPOINT_DB", str(PROJECT_ROOT / "checkpoints.db")))
 
 # V3 : nouveaux repertoires
-MODEL_CACHE_DIR = PROJECT_ROOT / "data" / "model_cache"
+MODEL_CACHE_DIR = Path(os.getenv("MODEL_CACHE_DIR", str(PROJECT_ROOT / "data" / "model_cache")))
 
 # Assure que les repertoires existent
 PDF_DIR.mkdir(parents=True, exist_ok=True)

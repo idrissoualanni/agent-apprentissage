@@ -6,6 +6,8 @@ import type {
   ChatRequest,
   ChatResponse,
   ConfirmationRequest,
+  QuizSubmitRequest,
+  QuizSubmitResponse,
   LearnerProfile,
   Competency,
   ProgressSummary,
@@ -16,7 +18,9 @@ import type {
   Artifact,
 } from "./types";
 
-const API_BASE = "/api";
+// En dev : proxy Next.js vers /api. En prod : URL reelle du backend Fly.io
+// (definir NEXT_PUBLIC_API_URL=https://agent-apprentissage-api.fly.dev/api).
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 async function request<T>(
   path: string,
@@ -67,6 +71,12 @@ export const chat = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  // Correctif 2 : soumission du score d'un quiz interactif
+  submitQuiz: (data: QuizSubmitRequest) =>
+    request<QuizSubmitResponse>("/chat/quiz-submit", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };
 
 // ── Profile ──────────────────────────────────────────────────────────────
@@ -89,7 +99,24 @@ export const progress = {
   due: () => request<{ due: unknown[]; count: number }>("/progress/due").then((d) => d.due),
   revisionPlan: () => request<RevisionPlan>("/progress/revision-plan"),
   summary: () => request<unknown>("/progress/summary"),
+  // Phase 6 : calendrier de revision (repetition espacee)
+  revisionCalendar: () =>
+    request<{ calendar: RevisionCalendarItem[]; count: number }>("/progress/revision/calendar").then((d) => d.calendar),
+  revisionDue: (limit = 20) =>
+    request<{ due: RevisionCalendarItem[]; count: number }>(`/progress/revision/due?limit=${limit}`).then((d) => d.due),
 };
+
+// Type pour le calendrier de revision (Phase 6)
+export interface RevisionCalendarItem {
+  competency_id: number;
+  nom: string;
+  domain: string;
+  score: number;
+  leitner_box: number;
+  next_review_at: string;
+  last_reviewed_at?: string;
+  status: string;
+}
 
 // ── Documents ────────────────────────────────────────────────────────────
 

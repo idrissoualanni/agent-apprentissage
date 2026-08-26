@@ -15,21 +15,14 @@ logger = logging.getLogger(__name__)
 
 @contextmanager
 def get_connection(db_path: Optional[Path] = None):
-    """Context manager pour une connexion SQLite avec WAL mode et foreign keys."""
-    from apps.api.config import DB_PATH
-    path = db_path or DB_PATH
-    conn = sqlite3.connect(str(path))
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
-    conn.row_factory = sqlite3.Row
-    try:
+    """Context manager pour une connexion DB (SQLite dev ou Postgres Neon prod).
+
+    Delegue a apps.api.db.database.get_db_connection qui choisit le backend
+    selon la presence de DATABASE_URL dans l'environnement.
+    """
+    from apps.api.db.database import get_db_connection
+    with get_db_connection(db_path) as conn:
         yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
 
 
 def init_db(db_path: Optional[Path] = None) -> None:

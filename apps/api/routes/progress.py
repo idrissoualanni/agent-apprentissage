@@ -5,6 +5,7 @@ from typing import Optional
 
 from apps.api.db import crud
 from apps.api.agent.tools.progress import get_progress_summary, get_revision_plan
+from apps.api.agent.memory import revision_planner
 import apps.api.config as config
 
 router = APIRouter(tags=["progress"])
@@ -38,3 +39,20 @@ async def progress_summary(domain: str = ""):
     result = get_progress_summary.invoke({"domain": domain})
     import json
     return json.loads(result)
+
+
+# ─── Phase 6 : calendrier de revision (repetition espacee) ───────────────
+
+
+@router.get("/revision/calendar")
+async def revision_calendar():
+    """Calendrier de revision complet par competence (Phase 6)."""
+    calendar = revision_planner.get_revision_calendar(db_path=config.DB_PATH)
+    return {"calendar": calendar, "count": len(calendar)}
+
+
+@router.get("/revision/due")
+async def revision_due(limit: int = 20):
+    """Competences dont la revision est due maintenant (Phase 6)."""
+    due = revision_planner.get_due_reviews(db_path=config.DB_PATH, limit=limit)
+    return {"due": due, "count": len(due)}

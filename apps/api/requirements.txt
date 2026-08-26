@@ -1,13 +1,36 @@
+# ─── Backend FastAPI ───────────────────────────────────────────────────────
 fastapi>=0.109.0
 uvicorn[standard]>=0.27.0
+
+# ─── LangGraph (orchestration agent) ──────────────────────────────────────
 langgraph>=0.2.0
+langgraph-checkpoint-sqlite>=2.0.0
+langgraph-cli[inmem]>=0.2.0
+
+# ─── LangChain + Ollama (CLOUD uniquement) ───────────────────────────────
+# NB: tous les LLMs sont cloud (minimax-m3, kimi-k2.7-code, qwen3.5:397b, ...).
+# Seuls les embeddings RAG restent locaux (voir .env).
+langchain>=0.3.0
 langchain-ollama>=0.2.0
 langchain-core>=0.3.0
+
+# ─── RAG : ChromaDB ───────────────────────────────────────────────────────
 chromadb>=0.5.0
 langchain-chroma>=0.2.0
+
+# ─── Utilitaires ──────────────────────────────────────────────────────────
+# ddgs : DuckDuckGo search (web_search tool de l'agent)
 ddgs>=6.0.0
 python-multipart>=0.0.6
+python-dotenv>=1.0.0
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
 aiosqlite>=0.19.0
 httpx>=0.27.0
+ollama>=0.4.0
+# psycopg2 : PostgreSQL (Neon) pour la production
+psycopg2-binary>=2.9.9
+
+# ─── Tests ────────────────────────────────────────────────────────────────
+pytest>=8.0.0
+pytest-asyncio>=0.23.0

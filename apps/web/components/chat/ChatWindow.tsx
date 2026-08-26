@@ -5,10 +5,11 @@ import { MessageBubble } from "./MessageBubble";
 import { StreamingText } from "./StreamingText";
 import { ConfirmationButtons } from "./ConfirmationButtons";
 import { ToolBadge } from "./ToolBadge";
+import { Composer } from "./Composer";
+import { ArtifactRenderer } from "@/components/artifacts/ArtifactRenderer";
 import { sessions, chat } from "@/lib/api";
 import { streamChat, parseJSONResponse } from "@/lib/sse";
 import type { ChatMessage, ToolUsage, StreamEvent } from "@/lib/types";
-import { Send, Loader2 } from "lucide-react";
 
 interface ChatWindowProps {
   sessionId: number;
@@ -16,7 +17,6 @@ interface ChatWindowProps {
 
 export function ChatWindow({ sessionId }: ChatWindowProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [streamingMethod, setStreamingMethod] = useState<string | undefined>();
@@ -47,11 +47,10 @@ export function ChatWindow({ sessionId }: ChatWindowProps) {
     }).catch(console.error);
   }, [sessionId]);
 
-  const handleSend = useCallback(async () => {
-    const question = input.trim();
-    if (!question || isStreaming) return;
+  const handleSend = useCallback(async (question: string, forceWebSearch: boolean = false) => {
+    const trimmed = question.trim();
+    if (!trimmed || isStreaming) return;
 
-    setInput("");
     setIsStreaming(true);
     setStreamingText("");
     setToolsUsed([]);
@@ -60,15 +59,16 @@ export function ChatWindow({ sessionId }: ChatWindowProps) {
     const userMsg: ChatMessage = {
       id: Date.now(),
       role: "user",
-      content: question,
+      content: trimmed,
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMsg]);
 
     try {
       const response = await chat.send({
-        question,
+        question: trimmed,
         session_id: sessionId,
+        force_web_search: forceWebSearch,
       });
 
       if (response.pending_confirmation) {
@@ -98,6 +98,7 @@ export function ChatWindow({ sessionId }: ChatWindowProps) {
         content: response.answer,
         method: response.method,
         tools_used: response.tool_transparency,
+        artifacts: response.artifacts,
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
@@ -118,7 +119,7 @@ export function ChatWindow({ sessionId }: ChatWindowProps) {
     } finally {
       setIsStreaming(false);
     }
-  }, [input, isStreaming, sessionId]);
+  }, [isStreaming, sessionId]);
 
   const handleConfirm = async (accepted: boolean) => {
     if (!pendingConfirmation) return;
@@ -193,6 +194,18 @@ export function ChatWindow({ sessionId }: ChatWindowProps) {
             {msg.tools_used && msg.tools_used.length > 0 && (
               <ToolBadge tools={msg.tools_used} />
             )}
+            {/* Correctif 2 : afficher les artefacts (quiz interactif, etc.) */}
+            {msg.artifacts && msg.artifacts.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {msg.artifacts.map((artifact, ai) => (
+                  <ArtifactRenderer
+                    key={ai}
+                    artifact={artifact}
+                    sessionId={sessionId}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         ))}
 
@@ -216,38 +229,8 @@ export function ChatWindow({ sessionId }: ChatWindowProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area */}
-      <div className="border-t border-zinc-800 bg-surface-1/50 p-4">
-        <div className="flex items-end gap-2 max-w-3xl mx-auto">
-          <div className="flex-1 relative">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder="Pose ta question..."
-              rows={1}
-              className="w-full resize-none rounded-xl bg-surface-2 border border-zinc-700 px-4 py-3 pr-12 text-sm text-zinc-100 placeholder-zinc-500 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-colors"
-              disabled={isStreaming}
-            />
-          </div>
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isStreaming}
-            className="p-3 rounded-xl bg-primary-600 hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
-          >
-            {isStreaming ? (
-              <Loader2 size={18} className="animate-spin" />
-            ) : (
-              <Send size={18} />
-            )}
-          </button>
-        </div>
-      </div>
+      {/* Input area — Composer avec bouton + (upload) et toggle recherche web */}
+      <Composer onSend={handleSend} disabled={isStreaming} />
     </div>
   );
 }

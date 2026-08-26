@@ -21,23 +21,7 @@ logger = logging.getLogger(__name__)
 # ─── Catalogue par defaut ──────────────────────────────────────────────────
 
 DEFAULT_CATALOG: list[dict] = [
-    # ── Locaux ──
-    {
-        "model_name": "qwen2.5:1.5b",
-        "display_name": "Qwen 2.5 1.5B (Local)",
-        "provider": "ollama_local",
-        "default_temperature": 0.2,
-        "format_mode": "strict_json",
-        "max_tokens": 2048,
-    },
-    {
-        "model_name": "qwen2.5-coder:3b",
-        "display_name": "Qwen 2.5 Coder 3B (Local)",
-        "provider": "ollama_local",
-        "default_temperature": 0.2,
-        "format_mode": "strict_json",
-        "max_tokens": 2048,
-    },
+    # ── Embedding (local, requis pour le RAG/ChromaDB) ──
     {
         "model_name": "qwen3-embedding:0.6b",
         "display_name": "Qwen3 Embedding 0.6B (Local)",
@@ -46,7 +30,7 @@ DEFAULT_CATALOG: list[dict] = [
         "format_mode": "free_text",
         "max_tokens": 512,
     },
-    # ── Ollama Cloud ──
+    # ── Ollama Cloud (tous les LLMs) ──
     {
         "model_name": "minimax-m3",
         "display_name": "minimax-m3 (Cloud)",
@@ -94,11 +78,11 @@ DEFAULT_CATALOG: list[dict] = [
 
 OPERATION_PRESETS: dict[str, dict] = {
     "chat":              {"model_name": "minimax-m3",            "temperature": 0.3},
-    "quiz_generation":   {"model_name": "qwen2.5-coder:3b",      "temperature": 0.2},
+    "quiz_generation":   {"model_name": "kimi-k2.7-code",        "temperature": 0.2},
     "feynman_eval":      {"model_name": "minimax-m3",            "temperature": 0.2},
     "artifact":          {"model_name": "kimi-k2.7-code",        "temperature": 0.5},
     "diagnostic":        {"model_name": "minimax-m3",            "temperature": 0.3},
-    "relevance_check":   {"model_name": "qwen2.5-coder:3b",      "temperature": 0.0},
+    "relevance_check":   {"model_name": "minimax-m3",            "temperature": 0.0},
     "summarize":         {"model_name": "minimax-m3",            "temperature": 0.3},
 }
 
@@ -209,11 +193,23 @@ class ParsedResponse:
 # ─── Model Manager singleton ────────────────────────────────────────────────
 
 class ModelManager:
-    def __init__(self):
+    def __init__(self, force_local: bool = False):
+        """
+        Args:
+            force_local: Si True, tous les LLMs sont instanciés en local
+                         (Ollama localhost) même si le catalogue dit cloud.
+                         Utile pour LangGraph Studio / debug sans quota.
+        """
         self._catalog = {m["model_name"]: m for m in DEFAULT_CATALOG}
+        # Chaine de fallback : modeles cloud uniquement (plus de local).
         self._fallback_chain: list[str] = [
-            "minimax-m3", "qwen3.5:397b", "kimi-k2.7-code", "qwen2.5:1.5b",
+            "minimax-m3", "qwen3.5:397b", "kimi-k2.7-code", "deepseek-v4-flash:preview",
         ]
+        self.force_local = force_local
+        # NB: les modeles locaux LLM ont ete retires (cloud uniquement).
+        # _local_model pointe desormais sur un modele cloud, au cas ou
+        # force_local serait active par erreur.
+        self._local_model = "minimax-m3"
 
     def get_llm(self, operation: str, **overrides) -> FormatControlledLLM:
         """Retourne un LLM configure pour l'operation demandee."""
@@ -221,18 +217,23 @@ class ModelManager:
         model_name = preset["model_name"]
         temperature = preset.get("temperature", 0.3)
 
+        # Mode force_local : on bascule tout sur le modèle local
+        if self.force_local and "model_name" not in overrides:
+            model_name = self._local_model
+
         model_config = self._catalog.get(model_name)
         if not model_config:
             # Modele inconnu : on prend le chat par defaut
-            model_config = self._catalog[OPERATION_PRESETS["chat"]["model_name"]]
+            fallback_name = self._local_model if self.force_local else OPERATION_PRESETS["chat"]["model_name"]
+            model_config = self._catalog.get(fallback_name) or self._catalog[OPERATION_PRESETS["chat"]["model_name"]]
             model_name = model_config["model_name"]
-            logger.warning(f"Unknown model '{model_name}', fallback to {model_name}")
+            logger.warning(f"Unknown model, fallback to {model_name}")
 
         format_mode = model_config.get("format_mode", "json_or_markdown")
         provider = model_config["provider"]
 
-        # Instanciation
-        if provider == "ollama_cloud":
+        # Instanciation (force_local => toujours local)
+        if provider == "ollama_cloud" and not self.force_local:
             llm = self._make_cloud_llm(model_name, temperature)
         else:
             llm = self._make_local_llm(model_name, temperature)

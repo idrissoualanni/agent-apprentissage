@@ -1,0 +1,42 @@
+# ─── Deploiement — Agent d'Apprentissage ──────────────────────────────────
+# Orchestre le backend FastAPI et le frontend Next.js.
+# Usage : docker compose up --build
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: agent-api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DB_PATH=/app/db/agent.db
+      - CHECKPOINT_DB=/app/checkpoints.db
+      - CHROMA_DIR=/app/data/chroma
+    volumes:
+      - agent_db:/app/db
+      - agent_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: agent-web
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  agent_db:
+  agent_data:

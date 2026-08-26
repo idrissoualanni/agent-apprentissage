@@ -1,0 +1,33 @@
+# ─── .dockerignore — Agent d'Apprentissage ────────────────────────────────
+# Exclut les fichiers inutiles/volumineux du contexte Docker.
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Node
+apps/web/node_modules/
+apps/web/.next/
+apps/web/out/
+
+# Donnees locales (persistees via volumes Docker)
+db/
+data/
+*.db
+checkpoints.db
+
+# Environnement (a fournir separement)
+.env
+.env.studio
+
+# Divers
+.git/
+.gitignore
+*.log
+.DS_Store
+docs/
+tests/
+v2/

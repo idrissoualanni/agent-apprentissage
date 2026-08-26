@@ -144,11 +144,98 @@ V3_TRIGGERS: list[str] = [
 ]
 
 
+# ─── Tables mémoire (Phase 2 — Learner Model) ────────────────────────────
+# Base de connaissance utilisateur : score par compétence/session, efficacité
+# des méthodes, sujets habituels, résumé de session, compétences en attente.
+
+MEMORY_TABLES: dict[str, str] = {
+    "session_competency_score": """
+        CREATE TABLE IF NOT EXISTS session_competency_score (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL DEFAULT 'default_user',
+            session_id INTEGER REFERENCES session(id) ON DELETE CASCADE,
+            competency_id INTEGER NOT NULL REFERENCES competency(id) ON DELETE CASCADE,
+            score REAL NOT NULL DEFAULT 0.0,
+            p_success REAL DEFAULT 0.5,
+            updated_at DATETIME DEFAULT (datetime('now')),
+            UNIQUE(session_id, competency_id)
+        )
+    """,
+    "method_effectiveness": """
+        CREATE TABLE IF NOT EXISTS method_effectiveness (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL DEFAULT 'default_user',
+            competency_id INTEGER REFERENCES competency(id) ON DELETE CASCADE,
+            method TEXT NOT NULL,
+            uses INTEGER DEFAULT 1,
+            successes INTEGER DEFAULT 0,
+            effectiveness REAL DEFAULT 0.0,
+            updated_at DATETIME DEFAULT (datetime('now')),
+            UNIQUE(competency_id, method)
+        )
+    """,
+    "user_topic_history": """
+        CREATE TABLE IF NOT EXISTS user_topic_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL DEFAULT 'default_user',
+            topic TEXT NOT NULL,
+            mentions INTEGER DEFAULT 1,
+            last_mentioned DATETIME DEFAULT (datetime('now')),
+            UNIQUE(user_id, topic)
+        )
+    """,
+    "session_summary": """
+        CREATE TABLE IF NOT EXISTS session_summary (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER REFERENCES session(id) ON DELETE CASCADE,
+            user_id TEXT NOT NULL DEFAULT 'default_user',
+            pedagogical_facts TEXT DEFAULT '{}',
+            text_summary TEXT DEFAULT '',
+            turn_count INTEGER DEFAULT 0,
+            updated_at DATETIME DEFAULT (datetime('now')),
+            UNIQUE(session_id)
+        )
+    """,
+    "pending_competency": """
+        CREATE TABLE IF NOT EXISTS pending_competency (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL DEFAULT 'default_user',
+            proposed_name TEXT NOT NULL,
+            proposed_domain TEXT DEFAULT '',
+            parent_competency_id INTEGER REFERENCES competency(id) ON DELETE SET NULL,
+            status TEXT DEFAULT 'pending',
+            created_at DATETIME DEFAULT (datetime('now'))
+        )
+    """,
+}
+
+MEMORY_INDEXES: list[str] = [
+    "CREATE INDEX IF NOT EXISTS idx_scs_session ON session_competency_score(session_id)",
+    "CREATE INDEX IF NOT EXISTS idx_scs_competency ON session_competency_score(competency_id)",
+    "CREATE INDEX IF NOT EXISTS idx_me_competency ON method_effectiveness(competency_id)",
+    "CREATE INDEX IF NOT EXISTS idx_uth_user ON user_topic_history(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_ss_session ON session_summary(session_id)",
+    "CREATE INDEX IF NOT EXISTS idx_pc_user ON pending_competency(user_id)",
+]
+
+
 def run_migrations(db_path: Optional[Path] = None) -> dict:
     """Applique les migrations V3 de manière idempotente.
 
     Retourne un dict avec les changements appliqués.
+    En mode Postgres (DATABASE_URL definie), le schema est suppose deja applique
+    (via schema_v3_postgres.sql) : on ne fait rien.
     """
+    from apps.api.db.database import is_postgres
+    if is_postgres():
+        logger.info("Mode PostgreSQL : migrations SQLite ignorees (schema deja applique).")
+        return {
+            "tables_created": [],
+            "columns_added": [],
+            "indexes_created": [],
+            "triggers_created": [],
+        }
+
     from apps.api.config import DB_PATH
     path = db_path or DB_PATH
 
@@ -174,6 +261,13 @@ def run_migrations(db_path: Optional[Path] = None) -> dict:
                 conn.execute(create_sql)
                 changes["tables_created"].append(table_name)
                 logger.info(f"Created table: {table_name}")
+
+        # 1bis. Créer les tables mémoire (Phase 2 — Learner Model)
+        for table_name, create_sql in MEMORY_TABLES.items():
+            if table_name not in existing_tables:
+                conn.execute(create_sql)
+                changes["tables_created"].append(table_name)
+                logger.info(f"Created memory table: {table_name}")
 
         # 2. Ajouter les nouvelles colonnes
         for table_name, columns in V3_COLUMNS.items():
@@ -201,6 +295,16 @@ def run_migrations(db_path: Optional[Path] = None) -> dict:
                     changes["indexes_created"].append(idx_name)
                 except sqlite3.OperationalError as e:
                     logger.warning(f"Could not create index {idx_name}: {e}")
+
+        # 3bis. Créer les index mémoire (Phase 2)
+        for idx_sql in MEMORY_INDEXES:
+            idx_name = idx_sql.split("IF NOT EXISTS")[1].split("ON")[0].strip()
+            if idx_name not in existing_indexes:
+                try:
+                    conn.execute(idx_sql)
+                    changes["indexes_created"].append(idx_name)
+                except sqlite3.OperationalError as e:
+                    logger.warning(f"Could not create memory index {idx_name}: {e}")
 
         # 4. Créer les triggers
         for trigger_sql in V3_TRIGGERS:

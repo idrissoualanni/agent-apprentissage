@@ -1,0 +1,28 @@
+# ─── Frontend Next.js — Agent d'Apprentissage ─────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Dependances
+COPY apps/web/package.json apps/web/package-lock.json* ./
+RUN npm install
+
+# Code + build
+COPY apps/web ./
+RUN npm run build
+
+# ─── Image de production ──────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Copie du build Next.js (standalone non active → on copie .next + node_modules)
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/public ./public
+
+EXPOSE 3000
+
+CMD ["npm", "run", "start"]
