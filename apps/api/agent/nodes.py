@@ -259,7 +259,7 @@ def diagnostic_node(state: AgentState, model_manager, db_path=None) -> dict:
     (voir answer_processing_node). N'écrit plus dans la DB à ce stade.
     """
     llm = model_manager.get_llm("diagnostic")
-    domain = state["learner_profile"].get("domain", "ce domaine")
+    domain = state["learner_profile"].get("domain") or "ce domaine"
 
     messages = DIAGNOSTIC_PROMPT.format_messages(
         domain=domain,

@@ -109,7 +109,8 @@ async def chat(req: ChatRequest):
                 logging.getLogger(__name__).warning(f"Failed to save messages: {e}")
 
         # Construire la réponse avec message_id pour le frontend
-        response = {
+        # (retourner le dict directement : FastAPI le serialise en JSON)
+        return {
             "message_id": result.get("message_id"),
             "answer": result.get("answer", ""),
             "method": result.get("method"),
@@ -120,7 +121,6 @@ async def chat(req: ChatRequest):
             "tool_transparency": result.get("tool_transparency", []),
             "thread_id": result.get("thread_id"),
         }
-        return json.dumps(response, ensure_ascii=False)
 
 
 @router.post("/confirm")

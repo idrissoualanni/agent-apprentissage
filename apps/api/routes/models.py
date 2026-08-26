@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Optional
 
-from apps.api.services.model_manager import ModelManager
+from apps.api.services.model_manager import ModelManager, OPERATION_PRESETS
 from apps.api.db import crud
 import apps.api.config as config
 
@@ -24,22 +24,30 @@ def _get_manager() -> ModelManager:
 async def list_catalog():
     """Liste le catalogue complet de modèles."""
     mm = _get_manager()
-    return {"catalog": mm.list_catalog()}
+    return {"catalog": mm.list_available()}
 
 
 @router.get("/active")
 async def get_active():
     """Retourne les modèles actifs (par opération)."""
-    mm = _get_manager()
-    return {"active": mm.get_active_models()}
+    return {
+        "active": {
+            op: preset.get("model_name")
+            for op, preset in OPERATION_PRESETS.items()
+        }
+    }
 
 
 @router.post("/select")
 async def select_model(operation: str, model_id: str):
-    """Sélectionne un modèle pour une opération."""
+    """Sélectionne un modèle pour une opération (en mémoire jusqu'au restart)."""
     mm = _get_manager()
-    success = mm.select_model(operation, model_id, db_path=config.DB_PATH)
-    return {"ok": success}
+    if mm.get_config(model_id) is None:
+        return {"ok": False, "error": f"Modèle inconnu : {model_id}"}
+    if operation not in OPERATION_PRESETS:
+        return {"ok": False, "error": f"Opération inconnue : {operation}"}
+    OPERATION_PRESETS[operation]["model_name"] = model_id
+    return {"ok": True}
 
 
 @router.get("/status")

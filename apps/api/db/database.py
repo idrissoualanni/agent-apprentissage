@@ -71,6 +71,7 @@ class _PostgresCursorAdapter:
 
     def execute(self, sql, params=None):
         sql = _adapt_sql_for_postgres(sql)
+        self._last_was_insert = sql.lstrip().upper().startswith("INSERT")
         if params is not None:
             self._cursor.execute(sql, params)
         else:
@@ -90,8 +91,27 @@ class _PostgresCursorAdapter:
 
     @property
     def lastrowid(self):
-        # psycopg2 : utiliser RETURNING si besoin ; fallback a None
-        return getattr(self._cursor, "lastrowid", None)
+        # psycopg2 ne fournit pas lastrowid comme SQLite : on utilise
+        # lastval() qui retourne le dernier id genere par une sequence
+        # (SERIAL) dans la transaction courante.
+        if not getattr(self, "_last_was_insert", False):
+            return None
+        try:
+            self._cursor.execute("SAVEPOINT dsh_lastrowid")
+            self._cursor.execute("SELECT lastval()")
+            row = self._cursor.fetchone()
+            self._cursor.execute("RELEASE SAVEPOINT dsh_lastrowid")
+            if row is None:
+                return None
+            if isinstance(row, dict):
+                return next(iter(row.values()))
+            return row[0]
+        except Exception:
+            try:
+                self._cursor.execute("ROLLBACK TO SAVEPOINT dsh_lastrowid")
+            except Exception:
+                pass
+            return None
 
     def __getattr__(self, name):
         return getattr(self._cursor, name)
