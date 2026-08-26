@@ -19,6 +19,16 @@ env/
 .env.local
 .env*.local
 
+# Docker — surcharges locales et fichiers d'environnement (peuvent contenir des secrets)
+docker-compose.override.yml
+docker-compose.override.yaml
+docker-compose.*.local.yml
+docker-compose.*.local.yaml
+compose.override.yml
+compose.override.yaml
+.docker-env
+docker.env
+
 # Vercel
 .vercel/
 apps/web/.vercel/
