@@ -21,6 +21,8 @@ export function ChatWindow({ sessionId }: ChatWindowProps) {
   const [streamingText, setStreamingText] = useState("");
   const [streamingMethod, setStreamingMethod] = useState<string | undefined>();
   const [toolsUsed, setToolsUsed] = useState<ToolUsage[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [pendingConfirmation, setPendingConfirmation] = useState<{
     type: string;
     prompt: string;
@@ -37,15 +39,22 @@ export function ChatWindow({ sessionId }: ChatWindowProps) {
     scrollToBottom();
   }, [messages, streamingText]);
 
-  // Load session messages
+  // Load session messages (re-run on sessionId change + retry via loadAttempt)
   useEffect(() => {
     if (!sessionId) return;
     setMessages([]);
     setStreamingText("");
+    setPendingConfirmation(null);
+    setLoadError(null);
     sessions.messages(sessionId).then((data) => {
       setMessages(data);
-    }).catch(console.error);
-  }, [sessionId]);
+    }).catch((err) => {
+      console.error(err);
+      setLoadError(
+        "Impossible de charger les messages (le serveur démarre peut-être). "
+      );
+    });
+  }, [sessionId, loadAttempt]);
 
   const handleSend = useCallback(async (question: string, forceWebSearch: boolean = false) => {
     const trimmed = question.trim();
@@ -179,7 +188,19 @@ export function ChatWindow({ sessionId }: ChatWindowProps) {
     <div className="flex flex-col h-full">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {messages.length === 0 && !streamingText && (
+        {loadError && (
+          <div className="flex flex-col items-center justify-center gap-3 p-6 rounded-lg border border-red-900/50 bg-red-950/20 text-center">
+            <p className="text-sm text-red-300">{loadError}</p>
+            <button
+              onClick={() => setLoadAttempt((n) => n + 1)}
+              className="px-3 py-1.5 rounded-md bg-red-900/40 hover:bg-red-900/60 text-red-200 text-sm transition-colors"
+            >
+              Réessayer
+            </button>
+          </div>
+        )}
+
+        {messages.length === 0 && !streamingText && !loadError && (
           <div className="flex flex-col items-center justify-center h-full text-zinc-500">
             <p className="text-lg">Pose-moi une question !</p>
             <p className="text-sm mt-1 text-zinc-600">

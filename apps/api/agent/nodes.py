@@ -71,6 +71,12 @@ DIAGNOSTIC_PROMPT = ChatPromptTemplate.from_messages([
     ("system", """Tu es un évaluateur pédagogique. Le domaine est : {domain}.
 Génère 3 questions calibrées pour estimer le niveau de l'utilisateur.
 
+IMPORTANT : le sujet des questions doit être EXCLUSIVEMENT le sujet d'apprentissage
+mentionné par l'utilisateur dans son message ci-dessous. Si le domaine indiqué est
+"ce domaine", déduis le sujet depuis le message de l'utilisateur. Ne génère JAMAIS
+de questions sur un autre sujet (pas de questions sur l'IA, la technologie en
+général, ou tout sujet non demandé).
+
 Format JSON STRICT :
 {{
   "questions": ["question 1", "question 2", "question 3"]
@@ -95,7 +101,8 @@ Réponses de l'apprenant :
 Analyse la qualité, la précision et la profondeur des réponses, puis réponds en JSON STRICT :
 {{
   "estimated_level": "debutant" | "intermediaire" | "avance",
-  "justification": "courte explication"
+  "justification": "courte explication",
+  "suggested_domain": "nom court du sujet d'apprentissage détecté (2-4 mots, français), ex: 'Fractions', 'Algèbre', 'Photosynthèse'"
 }}"""),
     ("human", "Estime le niveau de l'apprenant."),
 ])
@@ -261,6 +268,22 @@ def diagnostic_node(state: AgentState, model_manager, db_path=None) -> dict:
     Ne devine plus le niveau : il sera estimé après les réponses de l'utilisateur
     (voir answer_processing_node). N'écrit plus dans la DB à ce stade.
     """
+    question = state.get("question", "")
+
+    # Message meta (salutation) ou trop vague : pas de diagnostic, on accueille
+    # et on demande ce que l'utilisateur veut apprendre.
+    if _is_meta_question(question) or len(question.strip()) < 10:
+        return {
+            "method": "scaffold",
+            "diagnostic_active": False,
+            "answer": (
+                "Salut ! 👋 Je suis ton agent d'apprentissage personnel.\n\n"
+                "Dis-moi ce que tu veux apprendre — par exemple : "
+                "« Je veux apprendre les fractions » ou « Apprends-moi les bases de Python » — "
+                "et je commencerai par estimer ton niveau avec 3 petites questions."
+            ),
+        }
+
     llm = model_manager.get_llm("diagnostic")
     domain = state["learner_profile"].get("domain") or "ce domaine"
 
@@ -458,6 +481,11 @@ def _process_diagnostic_answer(state: AgentState, model_manager, db_path=None) -
             data = json.loads(content.strip())
             estimated_level = data.get("estimated_level", "debutant")
             justification = data.get("justification", "")
+            # Inférence du domaine si le profil n'en a pas encore
+            suggested = (data.get("suggested_domain") or "").strip()
+            if not profile_domain and suggested:
+                profile_domain = suggested
+                domain = suggested
         except Exception as e:
             logger.warning(f"Évaluation diagnostic échouée ({e}); niveau par défaut.")
 

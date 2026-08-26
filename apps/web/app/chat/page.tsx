@@ -51,6 +51,14 @@ export default function ChatPage() {
   const handleNewSession = async () => {
     try {
       const session = await sessionsAPI.create("Nouvelle session");
+      // Garde-fou : si l'id retourne est invalide, on recharge la liste
+      // pour recuperer l'id reel depuis la DB.
+      if (!session.id) {
+        const data = await sessionsAPI.list();
+        setSessionList(data);
+        if (data.length > 0) setActiveSessionId(data[0].id);
+        return;
+      }
       setSessionList((prev) => [session, ...prev]);
       setActiveSessionId(session.id);
     } catch (err) {

@@ -123,6 +123,37 @@ def _build_initial_state(
     return initial_state
 
 
+def _get_pending_interrupt(graph, config_dict: dict):
+    """Retourne le payload de l'interrupt en attente sur ce thread, sinon None."""
+    try:
+        snapshot = graph.get_state(config_dict)
+        if snapshot is None or not snapshot.next:
+            return None
+        for task in getattr(snapshot, "tasks", None) or []:
+            interrupts = getattr(task, "interrupts", None)
+            if interrupts:
+                return interrupts[0].value
+        return None
+    except Exception:
+        return None
+
+
+def _extract_interrupt(final_state) -> Optional[dict]:
+    """Extrait le payload d'un interrupt de l'etat retourne par invoke()."""
+    if not isinstance(final_state, dict):
+        return None
+    interrupts = final_state.get("__interrupt__")
+    if not interrupts:
+        return None
+    try:
+        value = interrupts[0].value
+        if isinstance(value, dict):
+            return value
+        return {"question": str(value), "type": None}
+    except Exception:
+        return None
+
+
 def run_agent(
     question: str,
     thread_id: Optional[str] = None,
@@ -152,22 +183,33 @@ def run_agent(
 
     config_dict = {"configurable": {"thread_id": thread_id}}
 
-    initial_state = _build_initial_state(
-        graph,
-        config_dict,
-        question=question,
-        user_id=user_id,
-        thread_id=thread_id,
-        model_override=model_override,
-        force_web_search=force_web_search,
-        streaming=False,
-        user_confirmed=user_confirmed,
-    )
+    # HITL : le thread a-t-il un interrupt en attente (confirmation demandee
+    # au tour precedent) ?
+    pending_interrupt = _get_pending_interrupt(graph, config_dict)
+
+    if pending_interrupt is not None and user_confirmed is not None:
+        # Reprise apres confirmation : Command(resume=...) realimente
+        # l'appel interrupt() du noeud en pause.
+        from langgraph.types import Command
+        invoke_input = Command(resume=user_confirmed)
+        logger.info(f"Reprise HITL: thread={thread_id[:8]}, confirmed={user_confirmed}")
+    else:
+        invoke_input = _build_initial_state(
+            graph,
+            config_dict,
+            question=question,
+            user_id=user_id,
+            thread_id=thread_id,
+            model_override=model_override,
+            force_web_search=force_web_search,
+            streaming=False,
+            user_confirmed=user_confirmed,
+        )
 
     logger.info(f"Exécution agent: question='{question[:50]}...', thread={thread_id[:8]}")
 
     try:
-        final_state = graph.invoke(initial_state, config=config_dict)
+        final_state = graph.invoke(invoke_input, config=config_dict)
     except Exception as e:
         logger.error(f"Erreur agent: {e}", exc_info=True)
         return {
@@ -175,6 +217,24 @@ def run_agent(
             "method": "error",
             "thread_id": thread_id,
             "error": str(e),
+        }
+
+    # HITL : l'execution s'est-elle arretee sur un nouvel interrupt ?
+    interrupt_payload = _extract_interrupt(final_state)
+    if interrupt_payload is not None:
+        return {
+            "answer": interrupt_payload.get("question", ""),
+            "method": final_state.get("method", "unknown") if isinstance(final_state, dict) else "unknown",
+            "thread_id": thread_id,
+            "artifacts": [],
+            "tool_transparency": [],
+            "pending_confirmation": True,
+            "confirmation_type": interrupt_payload.get("type"),
+            "confirmation_prompt": interrupt_payload.get("question"),
+            "evaluation_score": None,
+            "feynman_score": None,
+            "leitner_action": None,
+            "web_search_results": None,
         }
 
     return {
