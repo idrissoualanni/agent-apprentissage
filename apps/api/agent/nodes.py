@@ -211,7 +211,8 @@ def _needs_revision(question: str) -> bool:
 
 def router_profil_node(state: AgentState, retriever, model_manager, db_path=None) -> dict:
     """Charge le profil et décide du premier routing (diagnostic vs retrieval)."""
-    profile = crud.get_profile(db_path=db_path)
+    user_id = state.get("user_id", "default_user")
+    profile = crud.get_profile(user_id=user_id, db_path=db_path)
     domain = profile.get("domain", "")
     question = state.get("question", "")
 
@@ -232,7 +233,9 @@ def router_profil_node(state: AgentState, retriever, model_manager, db_path=None
     # Phase 1 — mémoire de session : ajouter la question de l'utilisateur à l'historique
     new_history = list(state.get("chat_history", [])) + [HumanMessage(content=question)]
 
-    if not domain:
+    # Diagnostic uniquement si aucun domaine ET aucun diagnostic passé
+    # (niveau_global est rempli par la fin du diagnostic).
+    if not domain and not profile.get("niveau_global"):
         return {
             "learner_profile": profile,
             "method": "diagnostic",
@@ -413,7 +416,10 @@ def _process_diagnostic_answer(state: AgentState, model_manager, db_path=None) -
     questions = state.get("diagnostic_questions", [])
     answers = list(state.get("diagnostic_answers", []))
     index = state.get("diagnostic_current_index", 0)
-    domain = state.get("learner_profile", {}).get("domain", "ce domaine")
+    user_id = state.get("user_id", "default_user")
+    # Domaine reel du profil (peut etre vide) ; version texte pour les prompts
+    profile_domain = (state.get("learner_profile") or {}).get("domain") or ""
+    domain = profile_domain or "ce domaine"
 
     # Enregistrer la réponse à la question courante
     if index < len(questions):
@@ -458,7 +464,7 @@ def _process_diagnostic_answer(state: AgentState, model_manager, db_path=None) -
     # Initialiser la maîtrise des compétences du domaine avec le niveau estimé
     level_to_score = {"debutant": 0.2, "intermediaire": 0.5, "avance": 0.8}
     initial_score = level_to_score.get(estimated_level, 0.2)
-    comps = crud.get_competencies(domain, db_path)
+    comps = crud.get_competencies(profile_domain, db_path) if profile_domain else []
     for comp in comps:
         if crud.get_mastery(comp["id"], db_path) is None:
             crud.upsert_mastery(
@@ -468,7 +474,12 @@ def _process_diagnostic_answer(state: AgentState, model_manager, db_path=None) -
                 status="new",
                 db_path=db_path,
             )
-    crud.update_profile(domain=domain, niveau_global=estimated_level, db_path=db_path)
+    crud.update_profile(
+        domain=profile_domain,
+        niveau_global=estimated_level,
+        user_id=user_id,
+        db_path=db_path,
+    )
 
     level_label = {"debutant": "débutant", "intermediaire": "intermédiaire", "avance": "avancé"}
     return {

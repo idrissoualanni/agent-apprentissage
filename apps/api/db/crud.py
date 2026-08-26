@@ -62,6 +62,17 @@ def get_profile(user_id: str = "default_user", db_path: Optional[Path] = None) -
         row = conn.execute(
             "SELECT * FROM learner_profile WHERE user_id = ?", (user_id,)
         ).fetchone()
+        if row:
+            return dict(row)
+        # Multi-user : creer le profil a la volee s'il n'existe pas
+        conn.execute(
+            "INSERT INTO learner_profile (user_id, domain, niveau_global) "
+            "VALUES (?, '', '')",
+            (user_id,),
+        )
+        row = conn.execute(
+            "SELECT * FROM learner_profile WHERE user_id = ?", (user_id,)
+        ).fetchone()
         return dict(row) if row else {}
 
 
