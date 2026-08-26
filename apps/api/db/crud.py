@@ -175,7 +175,7 @@ def upsert_mastery(
         """, (competency_id, score, leitner_box, status, next_review_at))
 
 
-def get_mastery_overview(domain: str, db_path: Optional[Path] = None) -> list[dict]:
+def get_mastery_overview(domain: str = "", db_path: Optional[Path] = None) -> list[dict]:
     with get_connection(db_path) as conn:
         rows = conn.execute("""
             SELECT c.id, c.nom, c.parent_id,
@@ -185,9 +185,9 @@ def get_mastery_overview(domain: str, db_path: Optional[Path] = None) -> list[di
                    m.next_review_at
             FROM competency c
             LEFT JOIN mastery m ON m.competency_id = c.id
-            WHERE c.domain = ?
+            WHERE (? = '' OR c.domain = ?)
             ORDER BY c.parent_id IS NULL DESC, c.parent_id, c.nom
-        """, (domain,)).fetchall()
+        """, (domain, domain)).fetchall()
         return [dict(r) for r in rows]
 
 

@@ -12,9 +12,9 @@ router = APIRouter(tags=["progress"])
 
 
 @router.get("/overview")
-async def mastery_overview():
-    """Vue d'ensemble de la maîtrise (toutes les compétences)."""
-    overview = crud.get_mastery_overview(db_path=config.DB_PATH)
+async def mastery_overview(domain: str = ""):
+    """Vue d'ensemble de la maîtrise (toutes les compétences si domain vide)."""
+    overview = crud.get_mastery_overview(domain=domain, db_path=config.DB_PATH)
     return {"overview": overview}
 
 

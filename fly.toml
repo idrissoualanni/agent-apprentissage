@@ -15,6 +15,15 @@ primary_region = "cdg"
   auto_start_machines = true
   min_machines_running = 0
 
+# Health check : Fly attend que /health reponde avant de router le trafic
+# (evite les 502 sans headers CORS au demarrage apres un auto-stop).
+[[http_service.checks]]
+  interval = "15s"
+  timeout = "5s"
+  grace_period = "45s"
+  method = "GET"
+  path = "/health"
+
 [[vm]]
   size = "shared-cpu-1x"
   memory = "512mb"
