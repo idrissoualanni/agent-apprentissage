@@ -64,6 +64,65 @@ def get_graph():
     return _graph_instance
 
 
+# Champs a reinitialiser A CHAQUE TOUR (resultats du tour courant).
+# Les champs persistants (diagnostic, chat_history, turn_count,
+# session_summary, learner_context, last_method_success, ...) ne doivent
+# SURTOUT PAS etre reinjectues : ils sont conserves par le checkpointer
+# LangGraph et les ecraser casserait la continuite multi-tours.
+_PER_TURN_RESETS = {
+    "rag_confidence": None,
+    "rag_relevant": False,
+    "rag_reason": "",
+    "tool_transparency": [],
+    "artifacts": [],
+    "web_search_results": None,
+    "session_id": None,
+    "next_step": None,
+}
+
+
+def _build_initial_state(
+    graph,
+    config_dict: dict,
+    question: str,
+    user_id: str,
+    thread_id: str,
+    model_override=None,
+    force_web_search: bool = False,
+    streaming: bool = False,
+    user_confirmed=None,
+) -> dict:
+    """Construit l'etat d'entree sans ecraser l'etat persistant du thread.
+
+    - Premier tour d'un nouveau thread : STATE_DEFAULTS complet.
+    - Tours suivants : uniquement les champs du tour courant ; l'etat
+      persistant (diagnostic en cours, memoire de session, ...) est
+      restaure par le checkpointer.
+    """
+    initial_state = {
+        "question": question,
+        "user_id": user_id,
+        "thread_id": thread_id,
+        "model_override": model_override,
+        "force_web_search": force_web_search,
+        "streaming": streaming,
+        **_PER_TURN_RESETS,
+    }
+    if user_confirmed is not None:
+        initial_state["user_confirmed"] = user_confirmed
+
+    has_state = False
+    try:
+        snapshot = graph.get_state(config_dict)
+        has_state = bool(snapshot is not None and snapshot.values)
+    except Exception:
+        has_state = False
+
+    if not has_state:
+        initial_state = {**STATE_DEFAULTS, **initial_state}
+    return initial_state
+
+
 def run_agent(
     question: str,
     thread_id: Optional[str] = None,
@@ -91,19 +150,19 @@ def run_agent(
     graph = get_graph()
     mm = _get_model_manager()
 
-    initial_state = {
-        **STATE_DEFAULTS,
-        "question": question,
-        "user_id": user_id,
-        "thread_id": thread_id,
-        "model_override": model_override,
-        "force_web_search": force_web_search,
-    }
-
-    if user_confirmed is not None:
-        initial_state["user_confirmed"] = user_confirmed
-
     config_dict = {"configurable": {"thread_id": thread_id}}
+
+    initial_state = _build_initial_state(
+        graph,
+        config_dict,
+        question=question,
+        user_id=user_id,
+        thread_id=thread_id,
+        model_override=model_override,
+        force_web_search=force_web_search,
+        streaming=False,
+        user_confirmed=user_confirmed,
+    )
 
     logger.info(f"Exécution agent: question='{question[:50]}...', thread={thread_id[:8]}")
 
@@ -153,16 +212,18 @@ def run_agent_streaming(
 
     graph = get_graph()
 
-    initial_state = {
-        **STATE_DEFAULTS,
-        "question": question,
-        "user_id": user_id,
-        "thread_id": thread_id,
-        "model_override": model_override,
-        "force_web_search": force_web_search,
-    }
-
     config_dict = {"configurable": {"thread_id": thread_id}}
+
+    initial_state = _build_initial_state(
+        graph,
+        config_dict,
+        question=question,
+        user_id=user_id,
+        thread_id=thread_id,
+        model_override=model_override,
+        force_web_search=force_web_search,
+        streaming=True,
+    )
 
     logger.info(f"Exécution agent streaming: thread={thread_id[:8]}")
 
