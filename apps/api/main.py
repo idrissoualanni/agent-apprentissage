@@ -34,13 +34,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS pour le dev Next.js
+# CORS pour le dev Next.js et le frontend Vercel
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "https://web-seven-nu-xdmbicvsxb.vercel.app",
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
