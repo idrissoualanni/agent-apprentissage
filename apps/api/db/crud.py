@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 
 import logging
 
+from apps.api.services import cache
+
 logger = logging.getLogger(__name__)
 
 
@@ -58,22 +60,29 @@ def init_db(db_path: Optional[Path] = None) -> None:
 # ═══════════════════════════════════════════════════════════════════════════
 
 def get_profile(user_id: str = "default_user", db_path: Optional[Path] = None) -> dict:
+    key = f"{user_id}|{db_path}"
+    cached = cache.cache_get(cache.profile_cache, key)
+    if cached is not None:
+        return cached
     with get_connection(db_path) as conn:
         row = conn.execute(
             "SELECT * FROM learner_profile WHERE user_id = ?", (user_id,)
         ).fetchone()
         if row:
-            return dict(row)
-        # Multi-user : creer le profil a la volee s'il n'existe pas
-        conn.execute(
-            "INSERT INTO learner_profile (user_id, domain, niveau_global) "
-            "VALUES (?, '', '')",
-            (user_id,),
-        )
-        row = conn.execute(
-            "SELECT * FROM learner_profile WHERE user_id = ?", (user_id,)
-        ).fetchone()
-        return dict(row) if row else {}
+            result = dict(row)
+        else:
+            # Multi-user : creer le profil a la volee s'il n'existe pas
+            conn.execute(
+                "INSERT INTO learner_profile (user_id, domain, niveau_global) "
+                "VALUES (?, '', '')",
+                (user_id,),
+            )
+            row = conn.execute(
+                "SELECT * FROM learner_profile WHERE user_id = ?", (user_id,)
+            ).fetchone()
+            result = dict(row) if row else {}
+    cache.cache_set(cache.profile_cache, key, result)
+    return result
 
 
 def update_profile(
@@ -101,6 +110,7 @@ def update_profile(
             WHERE user_id = ?
         """, (domain, niveau_global, learning_context, goals,
               mastered_topics, learning_topics, gap_topics, user_id))
+    cache.invalidate_profile(user_id)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -117,17 +127,25 @@ def create_competency(
             "VALUES (?, ?, ?, ?)",
             (domain, nom, parent_id, description),
         )
-        return cursor.lastrowid
+        new_id = cursor.lastrowid
+    cache.invalidate_competencies(domain)
+    return new_id
 
 
 def get_competencies(domain: str, db_path: Optional[Path] = None) -> list[dict]:
+    key = f"{domain}|{db_path}"
+    cached = cache.cache_get(cache.competency_cache, key)
+    if cached is not None:
+        return cached
     with get_connection(db_path) as conn:
         rows = conn.execute(
             "SELECT * FROM competency WHERE domain = ? "
             "ORDER BY parent_id IS NULL DESC, parent_id, nom",
             (domain,),
         ).fetchall()
-        return [dict(r) for r in rows]
+        result = [dict(r) for r in rows]
+    cache.cache_set(cache.competency_cache, key, result)
+    return result
 
 
 def get_competency_tree(domain: str, db_path: Optional[Path] = None) -> list[dict]:

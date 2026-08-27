@@ -13,8 +13,16 @@ import logging
 from typing import Optional
 
 from apps.api.agent.state import AgentState
-from langchain_core.messages import HumanMessage, AIMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from apps.api.agent.prompts import (
+    SOCRATIC_PROMPT, FEYNMAN_PROMPT_NODE, SCAFFOLD_PROMPT,
+    DIAGNOSTIC_PROMPT, DIAGNOSTIC_EVAL_PROMPT, RELEVANCE_CHECK_PROMPT,
+    RESPONSE_PROMPT, ORCHESTRATOR_SYSTEM, METHOD_SELECTION_PROMPT,
+    INTENT_PROMPT, REVISION_PROMPT, SEARCH_PROMPT,
+    format_context_block, format_memory_block, format_agent_state_block,
+    parse_json_llm,
+)
+from apps.api.agent.artifacts_xml import parse_learning_artefacts
 from apps.api.agent.tools.quiz import generate_quiz, evaluate_answer
 from apps.api.agent.tools.feynman import evaluate_feynman
 from apps.api.agent.tools.progress import update_mastery_after_quiz, update_mastery_after_feynman
@@ -25,115 +33,9 @@ import apps.api.config as config
 logger = logging.getLogger(__name__)
 
 
-# ─── Prompt templates ─────────────────────────────────────────────────────
-
-SOCRATIC_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """Tu es un tuteur socratique. L'utilisateur apprend : {competency_name}.
-Contexte : {context}
-Niveau estimé : {level}
-
-Ne donne JAMAIS la réponse directement. Guide par des questions.
-Si le niveau est faible, commence par des questions simples.
-Si le niveau est moyen, pousse la réflexion.
-Réponds en français, ton bienveillant mais exigeant."""),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{question}"),
-])
-
-FEYNMAN_PROMPT_NODE = ChatPromptTemplate.from_messages([
-    ("system", """Demande à l'utilisateur d'expliquer la notion suivante avec ses propres mots (méthode Feynman) :
-Notion : {competency_name}
-Contexte : {context}
-
-Formule une invitation claire : "Explique-moi comme si j'avais 12 ans..."
-Si l'utilisateur a déjà fourni une explication, évalue-la."""),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{question}"),
-])
-
-SCAFFOLD_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """Tu expliques une notion nouvelle de manière progressive.
-Notion : {competency_name}
-Contexte : {context}
-
-Structure :
-1. Définition simple en une phrase
-2. Analogie concrète
-3. Exemple détaillé
-4. Point de vigilance (erreur fréquente)
-
-Réponds en français, ton pédagogique."""),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{question}"),
-])
-
-DIAGNOSTIC_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """Tu es un évaluateur pédagogique. Le domaine est : {domain}.
-Génère 3 questions calibrées pour estimer le niveau de l'utilisateur.
-
-IMPORTANT : le sujet des questions doit être EXCLUSIVEMENT le sujet d'apprentissage
-mentionné par l'utilisateur dans son message ci-dessous. Si le domaine indiqué est
-"ce domaine", déduis le sujet depuis le message de l'utilisateur. Ne génère JAMAIS
-de questions sur un autre sujet (pas de questions sur l'IA, la technologie en
-général, ou tout sujet non demandé).
-
-Format JSON STRICT :
-{{
-  "questions": ["question 1", "question 2", "question 3"]
-}}
-
-Les questions doivent aller du général au spécifique (facile → difficile).
-Ne donne PAS de réponse aux questions, génère seulement les questions."""),
-    ("human", "{question}"),
-])
-
-# Correctif 1 : évalue le niveau réel APRÈS les réponses de l'utilisateur
-DIAGNOSTIC_EVAL_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """Tu es un évaluateur pédagogique. Le domaine est : {domain}.
-Voici les questions posées et les réponses de l'apprenant. Estime son niveau réel.
-
-Questions :
-{questions}
-
-Réponses de l'apprenant :
-{answers}
-
-Analyse la qualité, la précision et la profondeur des réponses, puis réponds en JSON STRICT :
-{{
-  "estimated_level": "debutant" | "intermediaire" | "avance",
-  "justification": "courte explication",
-  "suggested_domain": "nom court du sujet d'apprentissage détecté (2-4 mots, français), ex: 'Fractions', 'Algèbre', 'Photosynthèse'"
-}}"""),
-    ("human", "Estime le niveau de l'apprenant."),
-])
-
-# Correctif 5 : validation LLM de la pertinence du contexte RAG
-RELEVANCE_CHECK_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """Tu es un filtre de pertinence. On t'a donné une question et des extraits de documents.
-Détermine si les extraits contiennent réellement une information utile pour répondre à la question.
-
-Question : {question}
-
-Extraits :
-{context}
-
-Réponds en JSON STRICT :
-{{
-  "is_relevant": true | false,
-  "confidence": 0.0 à 1.0,
-  "reason": "courte explication"
-}}"""),
-    ("human", "Les extraits sont-ils pertinents pour la question ?"),
-])
-
-RESPONSE_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """Tu es un assistant pédagogique. Réponds à la question en t'appuyant sur le contexte.
-Contexte : {context}
-Méthode en cours : {method}
-Si tu ne sais pas, dis-le honnêtement."""),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{question}"),
-])
+# ─── Prompt templates : centralisés dans apps/api/agent/prompts.py ────────
+# (SOCRATIC_PROMPT, FEYNMAN_PROMPT_NODE, SCAFFOLD_PROMPT, DIAGNOSTIC_PROMPT,
+#  DIAGNOSTIC_EVAL_PROMPT, RELEVANCE_CHECK_PROMPT, RESPONSE_PROMPT)
 
 
 def format_docs(documents) -> str:
@@ -147,6 +49,26 @@ def _track_tool(state: AgentState, name: str, duration_ms: float, success: bool)
     transparency = state.get("tool_transparency") or []
     transparency.append({"name": name, "duration_ms": round(duration_ms, 1), "success": success})
     return transparency
+
+
+def _format_via_prompt(model_manager, prompt, format_kwargs: dict, fallback: str,
+                       operation: str = "summarize") -> str:
+    """Structure/formate des données via un prompt LLM léger (REVISION/SEARCH_PROMPT).
+
+    L'objectif est uniquement de STRUCTURER/FORMATER les données fournies, sans
+    synthèse pédagogique ajoutée. En cas d'échec ou d'absence de model_manager,
+    retourne le Markdown brut (fallback).
+    """
+    if model_manager is None:
+        return fallback
+    try:
+        llm = model_manager.get_llm(operation)
+        msgs = prompt.format_messages(**format_kwargs)
+        out = (llm.invoke(msgs).content or "").strip()
+        return out if out else fallback
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Formatage LLM échoué ({e}); repli Markdown brut.")
+        return fallback
 
 
 # ─── Nœuds ────────────────────────────────────────────────────────────────
@@ -216,6 +138,58 @@ def _needs_revision(question: str) -> bool:
     return False
 
 
+def _needs_wikipedia(question: str) -> bool:
+    """Détecte les questions factuelles/définitions → Wikipédia (réponse précise).
+
+    Déclencheurs volontairement conservateurs : les questions pédagogiques
+    générales ("qu'est-ce que...") restent gérées par RAG + méthode adaptative.
+    """
+    import re
+    q = question.lower().strip()
+    WIKI_PATTERNS = [
+        r"\bwikip[ée]dia\b", r"\bwiki\b",
+        r"^(donne[- ]moi\s+)?(la\s+)?d[ée]finition\s+(de|du|d')",
+        r"^d[ée]fini[s]?\b", r"^que\s+signifie\b", r"^c['\u2019]est\s+quoi\b",
+        r"^(qui\s+[ée]tait|qui\s+est)\b",
+        r"^(raconte|parle[- ]moi\s+de|pr[ée]sente[- ]moi)\b",
+        r"(biographie|date\s+de\s+naissance|en\s+quelle\s+ann[ée]e)",
+    ]
+    for pattern in WIKI_PATTERNS:
+        if re.search(pattern, q):
+            return True
+    return False
+
+
+def _classify_intent(question: str, model_manager=None) -> str:
+    """Classifie l'intention de la question via LLM (INTENT_PROMPT), repli regex.
+
+    Remplace les détections regex codées en dur par un prompt de classification.
+    Retourne : "meta" | "revision" | "wikipedia" | "web_search" | "pedagogique".
+    Le regex sert uniquement de secours si le LLM échoue ou est indisponible.
+    """
+    valid = ("meta", "revision", "wikipedia", "web_search", "pedagogique")
+    if model_manager is not None and question and question.strip():
+        try:
+            llm = model_manager.get_llm("intent")
+            msgs = INTENT_PROMPT.format_messages(question=question)
+            data = parse_json_llm(llm.invoke(msgs).content, default={})
+            intent = data.get("intent") if isinstance(data, dict) else None
+            if intent in valid:
+                return intent
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"Classification d'intention LLM échouée ({e}); repli regex.")
+    # Repli déterministe (regex)
+    if _is_meta_question(question):
+        return "meta"
+    if _needs_revision(question):
+        return "revision"
+    if _needs_wikipedia(question):
+        return "wikipedia"
+    if _needs_web_search(question):
+        return "web_search"
+    return "pedagogique"
+
+
 def router_profil_node(state: AgentState, retriever, model_manager, db_path=None) -> dict:
     """Charge le profil et décide du premier routing (diagnostic vs retrieval)."""
     user_id = state.get("user_id", "default_user")
@@ -240,21 +214,15 @@ def router_profil_node(state: AgentState, retriever, model_manager, db_path=None
     # Phase 1 — mémoire de session : ajouter la question de l'utilisateur à l'historique
     new_history = list(state.get("chat_history", [])) + [HumanMessage(content=question)]
 
-    # Diagnostic uniquement si aucun domaine ET aucun diagnostic passé
-    # (niveau_global est rempli par la fin du diagnostic).
-    if not domain and not profile.get("niveau_global"):
-        return {
-            "learner_profile": profile,
-            "method": "diagnostic",
-            "active_competency": None,
-            "rag_needed": not is_meta,
-            "question": question,
-            "chat_history": new_history,
-        }
+    # Le router ne choisit PLUS la méthode (avant : "diagnostic"/"scaffold" en dur).
+    # Il pose uniquement le flag de routage needs_diagnostic (bootstrap : aucun
+    # domaine ni niveau connu). La méthode pédagogique est choisie plus loin par
+    # method_selection_node ; le flux diagnostic, lui, est déclenché par ce flag.
+    needs_diagnostic = not domain and not profile.get("niveau_global")
 
     return {
         "learner_profile": profile,
-        "method": "scaffold",
+        "needs_diagnostic": needs_diagnostic,
         "active_competency": None,
         "rag_needed": not is_meta,
         "question": question,
@@ -293,18 +261,8 @@ def diagnostic_node(state: AgentState, model_manager, db_path=None) -> dict:
     )
 
     response = llm.invoke(messages)
-    content = response.content.strip()
-
-    if content.startswith("```"):
-        content = content.split("```")[1]
-        if content.startswith("json"):
-            content = content[4:]
-
-    try:
-        data = json.loads(content.strip())
-        questions = data.get("questions", [])
-    except json.JSONDecodeError:
-        questions = []
+    data = parse_json_llm(response.content, default={})
+    questions = data.get("questions", []) if isinstance(data, dict) else []
 
     if not questions:
         questions = [
@@ -329,6 +287,39 @@ def diagnostic_node(state: AgentState, model_manager, db_path=None) -> dict:
     }
 
 
+def _wikipedia_fallback_context(question: str, max_chars: int = 1500) -> str:
+    """Cherche un résumé Wikipédia pour servir de contexte quand le RAG est vide.
+
+    Ne se déclenche que pour les questions factuelles/définitions, et reste
+    best-effort : retourne "" à la moindre erreur (jamais bloquant).
+    """
+    if _is_meta_question(question):
+        return ""
+    q = question.lower()
+    FACTUAL_HINTS = (
+        "qu'est-ce", "qu est ce", "c'est quoi", "définition", "definition",
+        "qui est", "qui était", "que signifie", "comment fonctionne",
+        "à quoi sert", "a quoi sert", "histoire de", "biographie",
+        "explique-moi", "explique moi", "parle-moi de", "parle moi de",
+    )
+    if not any(h in q for h in FACTUAL_HINTS):
+        return ""
+    try:
+        from apps.api.agent.tools.wikipedia import wikipedia_search
+        result_str = wikipedia_search.invoke({"query": question, "max_results": 1})
+        results = json.loads(result_str)
+        if isinstance(results, list) and results:
+            top = results[0]
+            summary = (top.get("summary") or "").strip()
+            if summary:
+                src = (f"[Source : Wikipédia — {top.get('title', '')}]"
+                       f"({top.get('url', '')})")
+                return f"{summary[:max_chars]}\n\n{src}"
+    except Exception as e:  # noqa: BLE001
+        logger.debug(f"Repli Wikipédia ignoré : {e}")
+    return ""
+
+
 def retrieval_node(state: AgentState, retriever, model_manager=None) -> dict:
     """Correctif 5 : récupère le contexte RAG avec double-check de pertinence.
 
@@ -339,17 +330,34 @@ def retrieval_node(state: AgentState, retriever, model_manager=None) -> dict:
     """
     from apps.api.rag.retriever import retrieve_semantic
     import apps.api.config as config
+    from apps.api.services import cache
 
     question = state["question"]
     threshold = getattr(config, "RAG_SEMANTIC_THRESHOLD", 0.3)
     top_k = getattr(config, "TOP_K", 3)
 
-    docs, best_score, has_relevant = retrieve_semantic(
-        retriever, question, top_k=top_k, threshold=threshold
-    )
+    # Cache RAG : le 3-tuple complet (docs, best_score, has_relevant) est
+    # cache pour eviter les allers-retours Chroma Cloud repetes.
+    rk = cache.rag_key(question, top_k)
+    cached = cache.cache_get(cache.rag_cache, rk)
+    if cached is not None:
+        docs, best_score, has_relevant = cached
+    else:
+        docs, best_score, has_relevant = retrieve_semantic(
+            retriever, question, top_k=top_k, threshold=threshold
+        )
+        cache.cache_set(cache.rag_cache, rk, (docs, best_score, has_relevant))
 
-    # Aucun chunk pertinent → pas de contexte
+    # Aucun chunk pertinent → repli Wikipédia (réponses précises), sinon pas de contexte
     if not has_relevant or not docs:
+        wiki_context = _wikipedia_fallback_context(question)
+        if wiki_context:
+            return {
+                "context": wiki_context,
+                "rag_relevant": True,
+                "rag_confidence": best_score,
+                "rag_reason": "Aucun document local pertinent ; contexte fourni par Wikipédia.",
+            }
         return {
             "context": "",
             "rag_relevant": False,
@@ -366,12 +374,7 @@ def retrieval_node(state: AgentState, retriever, model_manager=None) -> dict:
             msgs = RELEVANCE_CHECK_PROMPT.format_messages(
                 question=question, context=context_text
             )
-            content = llm.invoke(msgs).content.strip()
-            if content.startswith("```"):
-                content = content.split("```")[1]
-                if content.startswith("json"):
-                    content = content[4:]
-            data = json.loads(content.strip())
+            data = parse_json_llm(llm.invoke(msgs).content, default={})
             is_relevant = data.get("is_relevant", True)
             confidence = float(data.get("confidence", best_score))
             reason = data.get("reason", "")
@@ -473,12 +476,7 @@ def _process_diagnostic_answer(state: AgentState, model_manager, db_path=None) -
             msgs = DIAGNOSTIC_EVAL_PROMPT.format_messages(
                 domain=domain, questions=questions_txt, answers=answers_txt,
             )
-            content = llm.invoke(msgs).content.strip()
-            if content.startswith("```"):
-                content = content.split("```")[1]
-                if content.startswith("json"):
-                    content = content[4:]
-            data = json.loads(content.strip())
+            data = parse_json_llm(llm.invoke(msgs).content, default={})
             estimated_level = data.get("estimated_level", "debutant")
             justification = data.get("justification", "")
             # Inférence du domaine si le profil n'en a pas encore
@@ -514,6 +512,9 @@ def _process_diagnostic_answer(state: AgentState, model_manager, db_path=None) -
         "diagnostic_answers": answers,
         "diagnostic_current_index": next_index,
         "diagnostic_active": False,
+        # V3 : flag PAR TOUR signalant que le diagnostic vient de se terminer.
+        # Remplace le signal fragile method=="diagnostic" (qui persistait en stale).
+        "diagnostic_just_completed": True,
         "estimated_level": estimated_level,
         "method": "diagnostic",
         "answer": (
@@ -575,8 +576,30 @@ def answer_processing_node(state: AgentState, model_manager=None, db_path=None) 
     return updates
 
 
-def method_selection_node(state: AgentState, db_path=None) -> dict:
-    """Choisit la méthode pédagogique selon le niveau, l'historique et la compétence active."""
+def _rule_based_method(mastery_score, level: str) -> str:
+    """Repli déterministe : méthode selon la maîtrise (priorité) ou le niveau global."""
+    if mastery_score is not None:
+        if mastery_score < 0.4:
+            return "scaffold"
+        if mastery_score < 0.7:
+            return "socratic"
+        return "feynman"
+    if level in ("debutant", ""):
+        return "scaffold"
+    if level == "intermediaire":
+        return "socratic"
+    return "feynman"
+
+
+def method_selection_node(state: AgentState, model_manager=None, db_path=None) -> dict:
+    """Choisit la méthode pédagogique en 3 étapes.
+
+    1. Intentions déterministes (quiz en cours, Feynman en cours, web forcé,
+       révision, actualité) → règles pures, JAMAIS de LLM.
+    2. Choix pédagogique (scaffold/socratic/feynman) → LLM via
+       METHOD_SELECTION_PROMPT, avec repli déterministe si échec/refus.
+    3. Hook ε-greedy : exploration/exploitation sur l'historique d'efficacité.
+    """
     profile = state.get("learner_profile", {})
     level = profile.get("niveau_global", "")
     domain = profile.get("domain", "")
@@ -585,52 +608,81 @@ def method_selection_node(state: AgentState, db_path=None) -> dict:
     if not active_competency and not state.get("quiz_active") and not state.get("feynman_explanation"):
         active_competency = _detect_active_competency(state["question"], domain, db_path)
 
-    # ── Correctif 3 : récupérer le score de maîtrise de la compétence active ──
+    # ── Score de maîtrise de la compétence active ──────────────────────────
     mastery_score = None
+    competency_id = None
     if active_competency:
-        cid = _resolve_competency_id(active_competency, state, db_path)
-        if cid is not None:
-            m = crud.get_mastery(cid, db_path)
+        competency_id = _resolve_competency_id(active_competency, state, db_path)
+        if competency_id is not None:
+            m = crud.get_mastery(competency_id, db_path)
             if m:
                 mastery_score = m.get("score")
 
+    # ── 1) Intentions déterministes liées à l'ÉTAT (pas de LLM) ────────────
     if state.get("quiz_active"):
-        method = "quiz"
-    elif state.get("feynman_explanation"):
-        method = "feynman"
-    elif state.get("force_web_search"):
-        # V3 : toggle UI "recherche web" activé → on force la méthode web_search
-        method = "web_search"
-    elif _needs_revision(state.get("question", "")):
-        method = "revision"
-    elif _needs_web_search(state.get("question", "")):
-        method = "web_search"
-    elif mastery_score is not None:
-        # Méthode basée sur la maîtrise de la compétence active (pas le niveau global)
-        if mastery_score < 0.4:
-            method = "scaffold"
-        elif mastery_score < 0.7:
-            method = "socratic"
-        else:
-            method = "feynman"
-    elif level in ("debutant", ""):
-        method = "scaffold"
-    elif level == "intermediaire":
-        method = "socratic"
-    else:
-        method = "feynman"
+        return {"method": "quiz", "active_competency": active_competency}
+    if state.get("feynman_explanation"):
+        return {"method": "feynman", "active_competency": active_competency}
+    if state.get("force_web_search"):
+        return {"method": "web_search", "active_competency": active_competency}
 
-    # ── Phase 5 : hook ε-greedy bandit ──
-    # Si on a des donnees d'efficacite pour cette competence, on exploite la
-    # meilleure methode connue (1-ε) ou on explore une autre methode (ε).
+    # ── 1b) Classification d'intention de la question ──────────────────────
+    # INTENT_PROMPT (LLM) remplace les regex codées en dur ; repli regex si échec.
+    intent = _classify_intent(state.get("question", ""), model_manager)
+    if intent == "revision":
+        return {"method": "revision", "active_competency": active_competency}
+    if intent == "wikipedia":
+        return {"method": "wikipedia", "active_competency": active_competency}
+    if intent == "web_search":
+        return {"method": "web_search", "active_competency": active_competency}
+
+    # ── 2) Choix pédagogique : prompt LLM (repli règles) ───────────────────
+    # Pour une intention "meta" (salutation, message court), on évite un second
+    # appel LLM et on passe directement au repli déterministe.
+    method = None
+    if model_manager is not None and intent != "meta":
+        try:
+            from apps.api.agent.memory import learner_model as lm
+            eff_text = "aucune donnée"
+            if competency_id is not None:
+                eff = lm.get_method_effectiveness(competency_id, db_path=db_path)
+                if eff:
+                    eff_text = "; ".join(
+                        f"{meth} : {v['successes']}/{v['uses']} réussites "
+                        f"({v['effectiveness']:.0%})"
+                        for meth, v in eff.items()
+                    )
+            llm = model_manager.get_llm("method_selection")
+            msgs = METHOD_SELECTION_PROMPT.format_messages(
+                domain=domain or "non défini",
+                competency=active_competency or "aucune",
+                level=level or "non estimé",
+                mastery_score=(f"{mastery_score:.2f}" if mastery_score is not None else "inconnu"),
+                method_effectiveness=eff_text,
+                memory_block=format_memory_block(
+                    state.get("learner_context"), state.get("session_summary")
+                ),
+                question=state.get("question", ""),
+            )
+            data = parse_json_llm(llm.invoke(msgs).content, default={})
+            candidate = data.get("method") if isinstance(data, dict) else None
+            if candidate in ("scaffold", "socratic", "feynman"):
+                method = candidate
+                logger.info(f"Méthode choisie par LLM : {method}")
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"Sélection de méthode LLM échouée ({e}); repli règles.")
+
+    if method is None:
+        method = _rule_based_method(mastery_score, level)
+
+    # ── 3) Hook ε-greedy bandit (exploration/exploitation) ─────────────────
     if active_competency and method in ("scaffold", "socratic", "feynman"):
         try:
-            from apps.api.agent.nodes_context import _epsilon_greedy_method, _resolve_competency_id as _rcid
-            cid = _rcid(active_competency, db_path=db_path)
-            if cid is not None:
-                method = _epsilon_greedy_method(cid, method, db_path=db_path)
+            from apps.api.agent.nodes_context import _epsilon_greedy_method
+            if competency_id is not None:
+                method = _epsilon_greedy_method(competency_id, method, db_path=db_path)
         except Exception:
-            pass  # pas de donnees d'efficacite → methode par defaut
+            pass  # pas de données d'efficacité → méthode par défaut
 
     return {"method": method, "active_competency": active_competency}
 
@@ -662,7 +714,9 @@ def generate_node(state: AgentState, model_manager) -> dict:
     method = state.get("method", "scaffold")
     context = state.get("context", "")
     competency = state.get("active_competency", "ce sujet")
-    level = state.get("estimated_level", state.get("learner_profile", {}).get("niveau_global", ""))
+    level = (state.get("estimated_level")
+             or state.get("learner_profile", {}).get("niveau_global")
+             or "non déterminé")
 
     if method == "socratic":
         prompt = SOCRATIC_PROMPT
@@ -679,7 +733,7 @@ def generate_node(state: AgentState, model_manager) -> dict:
     domain = profile.get("domain", "ce domaine")
 
     format_kwargs = {
-        "context": context,
+        "context_block": format_context_block(context),
         "competency_name": competency,
         "level": level,
         "method": method,
@@ -691,8 +745,34 @@ def generate_node(state: AgentState, model_manager) -> dict:
         format_kwargs = {"domain": domain, "question": state["question"]}
 
     messages = prompt.format_messages(**format_kwargs)
+
+    # PROMPT MOTEUR : on injecte l'orchestrateur en TÊTE des messages pour les
+    # méthodes conversationnelles (pas le diagnostic, qui est un appel JSON sec).
+    # Il reçoit le maximum d'informations : contexte RAG, mémoire court + long
+    # terme, et l'instantané des actions en cours (quiz, Feynman, diagnostic...).
+    if method != "diagnostic":
+        engine_msg = SystemMessage(content=ORCHESTRATOR_SYSTEM.format(
+            method=method,
+            competency_name=competency,
+            level=level,
+            context_block=format_context_block(context),
+            memory_block=format_memory_block(
+                state.get("learner_context"), state.get("session_summary")
+            ),
+            agent_state_block=format_agent_state_block(state),
+        ))
+        messages = [engine_msg] + messages
+
     response = llm.invoke(messages)
     answer = response.content
+
+    # ARTEFACTS INLINE : extrait les blocs <learning_artefact> éventuels de la
+    # réponse (format Claude-style), les ajoute à l'état et nettoie le texte.
+    inline_artifacts = []
+    try:
+        answer, inline_artifacts = parse_learning_artefacts(answer)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Extraction artefacts inline échouée ({e}).")
 
     # Correctif 4 : suffixer d'une invitation adaptée selon next_step
     next_step = state.get("next_step")
@@ -703,11 +783,16 @@ def generate_node(state: AgentState, model_manager) -> dict:
     elif next_step == "continuer":
         answer += "\n\nOn continue sur cette lancée ?"
 
-    return {
+    updates = {
         "answer": answer,
         # Phase 1 — mémoire de session : ajouter la réponse à l'historique
         "chat_history": list(state.get("chat_history", [])) + [AIMessage(content=answer)],
     }
+    if inline_artifacts:
+        merged = list(state.get("artifacts") or [])
+        merged.extend(inline_artifacts)
+        updates["artifacts"] = merged
+    return updates
 
 
 def tool_execution_node(state: AgentState, model_manager) -> dict:
@@ -719,24 +804,30 @@ def tool_execution_node(state: AgentState, model_manager) -> dict:
     user_id = state.get("user_id", "default_user")
 
     if tool == "quiz":
+        # Résoudre le competency_id + niveau AVANT la génération pour les
+        # injecter dans l'artefact XML (nécessaire à l'interactivité FastAPI→LangGraph).
+        competency_id = _resolve_competency_id(competency, state, db_path=None)
+        level = (state.get("estimated_level")
+                 or state.get("learner_profile", {}).get("niveau_global")
+                 or "intermediaire")
+
         result_str = generate_quiz.invoke({
             "competency_name": competency,
             "context": context,
             "nb_questions": 3,
             "difficulte": "moyen",
+            "level": level,
+            "competency_id": str(competency_id) if competency_id is not None else "",
         })
         questions = json.loads(result_str)
         elapsed = (time.time() - t0) * 1000
-
-        # Correctif 2 : résoudre le competency_id pour la soumission du score
-        competency_id = _resolve_competency_id(competency, state, db_path=None)
 
         n = len(questions)
         return {
             "quiz_questions": questions,
             "quiz_active": True,
             "answer": f"Voici un quiz de {n} question{'s' if n > 1 else ''} sur « {competency} ». Réponds puis valide !",
-            # Correctif 2 : le quiz est livré en artefact interactif
+            # Le quiz est livré en artefact interactif (format Claude-style).
             "artifacts": [{
                 "artifact_type": "quiz",
                 "title": f"Quiz — {competency}",
@@ -744,6 +835,8 @@ def tool_execution_node(state: AgentState, model_manager) -> dict:
                 "metadata": {
                     "competency_id": competency_id,
                     "competency_name": competency,
+                    "level": level,
+                    "interactive": True,
                 },
             }],
             "tool_transparency": _track_tool(state, "generate_quiz", elapsed, True),
@@ -751,9 +844,9 @@ def tool_execution_node(state: AgentState, model_manager) -> dict:
 
     elif tool == "feynman":
         if state.get("feynman_explanation"):
+            # Correctif centralisation : la signature de l'outil est (topic, explanation).
             result_str = evaluate_feynman.invoke({
                 "topic": competency,
-                "context": context,
                 "explanation": state["feynman_explanation"],
             })
             result = json.loads(result_str)
@@ -772,7 +865,7 @@ def tool_execution_node(state: AgentState, model_manager) -> dict:
 
     elif tool == "web_search":
         from apps.api.agent.tools.web_search import web_search
-        result_str = web_search.invoke({"query": state["question"], "num_results": 3})
+        result_str = web_search.invoke({"query": state["question"], "max_results": 3})
         results = json.loads(result_str)
         elapsed = (time.time() - t0) * 1000
         if isinstance(results, dict) and "error" in results:
@@ -780,14 +873,69 @@ def tool_execution_node(state: AgentState, model_manager) -> dict:
                 "answer": f"Erreur de recherche web : {results['error']}",
                 "tool_transparency": _track_tool(state, "web_search", elapsed, False),
             }
+        # Markdown brut (repli)
         lines = ["### Résultats web\n"]
         for i, r in enumerate(results, 1):
             lines.append(f"**{i}. [{r['title']}]({r['url']})**")
             lines.append(f"{r['snippet']}\n")
+        fallback = "\n".join(lines)
+        # Structuration via SEARCH_PROMPT (pas de synthèse ajoutée)
+        results_txt = "\n".join(
+            f"- titre: {r.get('title', '')} | résumé: {r.get('snippet', '')} | url: {r.get('url', '')}"
+            for r in results
+        )
+        answer = _format_via_prompt(model_manager, SEARCH_PROMPT, {
+            "source_type": "recherche web",
+            "question": state["question"],
+            "results": results_txt,
+        }, fallback)
         return {
-            "answer": "\n".join(lines),
+            "answer": answer,
             "web_search_results": results,
             "tool_transparency": _track_tool(state, "web_search", elapsed, True),
+        }
+
+    elif tool == "wikipedia":
+        from apps.api.agent.tools.wikipedia import wikipedia_search
+        result_str = wikipedia_search.invoke({"query": state["question"], "max_results": 2})
+        results = json.loads(result_str)
+        elapsed = (time.time() - t0) * 1000
+        if isinstance(results, dict) and "error" in results:
+            return {
+                "answer": "Wikipédia est indisponible pour le moment, réessaie un peu plus tard.",
+                "tool_transparency": _track_tool(state, "wikipedia_search", elapsed, False),
+            }
+        if not results:
+            return {
+                "answer": "Je n'ai pas trouvé d'article Wikipédia correspondant à ta question. "
+                          "Peux-tu reformuler ou préciser le terme recherché ?",
+                "tool_transparency": _track_tool(state, "wikipedia_search", elapsed, True),
+            }
+        # Markdown brut (repli)
+        top = results[0]
+        lines = [f"### 📖 {top['title']}\n", top.get("summary", ""), ""]
+        if len(results) > 1:
+            lines.append("**Pour aller plus loin :**")
+            for r in results[1:]:
+                lines.append(f"- [{r['title']}]({r.get('url', '')})")
+            lines.append("")
+        if top.get("url"):
+            lines.append(f"_Source : [Wikipédia — {top['title']}]({top['url']})_")
+        fallback = "\n".join(lines)
+        # Structuration via SEARCH_PROMPT (pas de synthèse ajoutée)
+        results_txt = "\n".join(
+            f"- titre: {r.get('title', '')} | résumé: {r.get('summary', '')} | url: {r.get('url', '')}"
+            for r in results
+        )
+        answer = _format_via_prompt(model_manager, SEARCH_PROMPT, {
+            "source_type": "Wikipédia",
+            "question": state["question"],
+            "results": results_txt,
+        }, fallback)
+        return {
+            "answer": answer,
+            "web_search_results": results,
+            "tool_transparency": _track_tool(state, "wikipedia_search", elapsed, True),
         }
 
     elif tool == "revision":
@@ -802,25 +950,50 @@ def tool_execution_node(state: AgentState, model_manager) -> dict:
                 "answer": result.get("message", "Aucune révision nécessaire. ✅"),
                 "tool_transparency": _track_tool(state, "get_revision_plan", elapsed, True),
             }
-        lines = [f"### 📅 Plan de révision — {result.get('message','')}\n"]
+        # Markdown brut (repli)
+        lines = [f"### 📅 Plan de révision — {result.get('message', '')}\n"]
         for i, item in enumerate(plan, 1):
             lines.append(f"**{i}. {item['nom']}** — box {item['leitner_box']}, score {item['score']:.0%}")
             lines.append(f"   Prochaine révision : {item['next_review']}\n")
         if result.get("total_due", 0) > len(plan):
             lines.append(f"_…et {result['total_due'] - len(plan)} autre(s) en attente._")
+        fallback = "\n".join(lines)
+        # Structuration via REVISION_PROMPT (pas de synthèse ajoutée)
+        plan_items_txt = "\n".join(
+            f"- {item['nom']} | boîte Leitner {item['leitner_box']} | "
+            f"score {item['score']:.0%} | prochaine révision {item['next_review']}"
+            for item in plan
+        )
+        answer = _format_via_prompt(model_manager, REVISION_PROMPT, {
+            "domain": domain or "non défini",
+            "message": result.get("message", ""),
+            "plan_items": plan_items_txt,
+        }, fallback)
         return {
-            "answer": "\n".join(lines),
+            "answer": answer,
             "tool_transparency": _track_tool(state, "get_revision_plan", elapsed, True),
         }
 
     elif tool == "artifact":
         artifact_type = state.get("tool_result", "schema")
-        level = state.get("estimated_level",
-                           state.get("learner_profile", {}).get("niveau_global", "intermediaire"))
+        level = (state.get("estimated_level")
+                 or state.get("learner_profile", {}).get("niveau_global")
+                 or "intermediaire")
+        competency_id = _resolve_competency_id(competency, state, db_path=None)
+        # La signature de l'outil est (artifact_type, title, description,
+        # competency, competency_id, level).
+        description = (
+            f"Crée un artefact de type « {artifact_type} » sur « {competency} » "
+            f"pour un apprenant de niveau {level}. Demande : {state.get('question', '')}"
+        )
+        if context:
+            description += f"\nContexte documentaire : {context[:1500]}"
         result_str = create_artifact.invoke({
-            "topic": competency,
-            "context": context,
             "artifact_type": artifact_type,
+            "title": competency,
+            "description": description,
+            "competency": competency,
+            "competency_id": str(competency_id) if competency_id is not None else "",
             "level": level,
         })
         result = json.loads(result_str)
@@ -829,7 +1002,13 @@ def tool_execution_node(state: AgentState, model_manager) -> dict:
         content_md = result.get("content", "")
         answer_md = f"### :material/draw: {title}\n\n{content_md}"
 
-        artifact_record = {"type": artifact_type, "title": title, "content": content_md}
+        # Correctif : le frontend lit `artifact_type` (pas `type`).
+        artifact_record = {
+            "artifact_type": result.get("type", artifact_type),
+            "title": title,
+            "content": content_md,
+            "metadata": result.get("metadata", {}),
+        }
         artifacts = state.get("artifacts") or []
         artifacts.append(artifact_record)
 
