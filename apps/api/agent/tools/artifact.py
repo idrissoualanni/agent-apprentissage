@@ -1,6 +1,12 @@
-"""Outil de création d'artefacts — port V2 → V3 avec 4 types."""
+"""Outil de création d'artefacts — format XML <learning_artefact> (Claude-style).
+
+Le LLM émet un artefact XML ; on le parse en structure JSON exploitable par le
+frontend (ArtifactRenderer). Repli : si le XML est absent/invalide, on renvoie
+le contenu brut pour ne pas bloquer la réponse.
+"""
 
 import json
+import re
 import logging
 from langchain.tools import tool
 
@@ -8,7 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 @tool
-def create_artifact(artifact_type: str, title: str, description: str) -> str:
+def create_artifact(artifact_type: str, title: str, description: str,
+                    competency: str = "", competency_id: str = "",
+                    level: str = "intermediaire") -> str:
     """Crée un artefact pédagogique structuré (schema, quiz, code, chart).
 
     Args:
@@ -16,60 +24,64 @@ def create_artifact(artifact_type: str, title: str, description: str) -> str:
                       "code" (Monaco editor), "chart" (Recharts)
         title: Titre de l'artefact
         description: Description ou consigne pour générer le contenu
+        competency: Nom de la compétence concernée (facultatif)
+        competency_id: Identifiant DB de la compétence (facultatif)
+        level: Niveau de l'apprenant (debutant/intermediaire/avance)
 
     Returns:
         JSON string avec type, title, content (contenu structuré selon le type)
     """
+    import uuid
     from apps.api.services.model_manager import MODEL_MANAGER
+    from apps.api.agent.prompts import ARTIFACT_PROMPT
+    from apps.api.agent.artifacts_xml import parse_learning_artefacts
 
     type_instructions = {
-        "schema": "Génère un diagramme Mermaid décrivant la structure du sujet.",
-        "quiz": "Génère un quiz interactif au format JSON React.",
-        "code": "Génère un exemple de code annoté et complet.",
-        "chart": "Génère les données pour un graphique Recharts.",
+        "schema": "Génère un diagramme Mermaid complet décrivant la structure du sujet.",
+        "quiz": "Génère un quiz interactif de 3 questions.",
+        "code": "Génère un exemple de code annoté, complet et exécutable.",
+        "chart": "Génère les données d'un graphique (bar/line/pie) au format JSON.",
     }
-
     instruction = type_instructions.get(artifact_type, type_instructions["schema"])
 
-    prompt = f"""Tu es un expert pédagogique. {instruction}
+    slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-") or "artefact"
+    identifier = f"{artifact_type}-{slug}-{uuid.uuid4().hex[:6]}"
 
-Sujet : {title}
-Description : {description}
-
-Réponds UNIQUEMENT avec un JSON valide (pas de texte avant/après) :
-{{
-    "type": "{artifact_type}",
-    "title": "{title}",
-    "content": {{
-        // Contenu selon le type :
-        // schema: {{"mermaid": "graph TD\\nA-->B"}}
-        // quiz: {{"questions": [{{"question": "...", "options": ["A","B","C","D"], "correct_index": 0}}]}}
-        // code: {{"language": "python", "code": "...", "explanation": "..."}}
-        // chart: {{"chartType": "bar", "data": [{{"name": "...", "value": 0}}], "title": "..."}}
-    }}
-}}"""
+    prompt = ARTIFACT_PROMPT.format(
+        instruction=instruction,
+        title=title,
+        competency=competency or title,
+        competency_id=competency_id or "",
+        level=level or "intermediaire",
+        description=description,
+        identifier=identifier,
+        artifact_type=artifact_type,
+    )
 
     llm_wrapper = MODEL_MANAGER.get_llm("artifact")
     from langchain_core.messages import HumanMessage
     response = llm_wrapper.invoke([HumanMessage(content=prompt)])
-    content = response.content.strip()
+    content = (response.content or "").strip()
 
+    # 1) Priorité : parser l'artefact XML <learning_artefact>.
     try:
-        if "```json" in content:
-            start = content.index("```json") + len("```json")
-            end = content.index("```", start)
-            content = content[start:end].strip()
-        elif content.startswith("```"):
-            content = content.split("```")[1]
-            if content.startswith("json"):
-                content = content[4:]
+        _, artifacts = parse_learning_artefacts(content)
+        if artifacts:
+            art = artifacts[0]
+            return json.dumps({
+                "type": art.get("artifact_type", artifact_type),
+                "title": art.get("title", title),
+                "content": art.get("content", ""),
+                "metadata": art.get("metadata", {}),
+            }, ensure_ascii=False)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Artifact XML parse failed ({e}); fallback brut.")
 
-        data = json.loads(content)
-        return json.dumps(data, ensure_ascii=False)
-    except (json.JSONDecodeError, ValueError):
-        logger.warning(f"Artifact parse failed: {content[:200]}")
-        return json.dumps({
-            "type": artifact_type,
-            "title": title,
-            "content": {"raw": content[:2000] if content else ""},
-        }, ensure_ascii=False)
+    # 2) Repli : contenu brut.
+    logger.warning(f"Artifact parse failed, raw: {content[:200]}")
+    return json.dumps({
+        "type": artifact_type,
+        "title": title,
+        "content": content[:2000] if content else "",
+        "metadata": {},
+    }, ensure_ascii=False)

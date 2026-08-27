@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { QuizQuestion, QuizState, QuizSubmitResponse } from "@/lib/types";
+import type { QuizQuestion, QuizState, QuizSubmitResponse, QuizAnswerDetail } from "@/lib/types";
 import { chat } from "@/lib/api";
 
 interface QuizArtifactProps {
@@ -49,15 +49,27 @@ export function QuizArtifact({ title, content, metadata, sessionId }: QuizArtifa
       score: correct,
     }));
 
-    // Correctif 2 : envoyer le score au backend pour mettre à jour la maîtrise Leitner
+    // Détail des réponses pour le backend (et pour LangGraph).
+    const answersDetail: QuizAnswerDetail[] = quizState.questions.map((q, i) => ({
+      question: q.question,
+      selected: quizState.answers[i],
+      correct: q.correct_index,
+      is_correct: q.correct_index === quizState.answers[i],
+    }));
+
+    // Boucle interactive : le format <learning_artefact> porte competency_id,
+    // identifier et niveau → FastAPI les renvoie DANS LangGraph (trigger_agent).
     setSubmitting(true);
     try {
       const result = await chat.submitQuiz({
         session_id: sessionId,
         competency_id: (metadata?.competency_id as number) ?? undefined,
         competency_name: (metadata?.competency_name as string) ?? undefined,
+        artifact_id: (metadata?.identifier as string) ?? undefined,
         correct,
         total: quizState.questions.length,
+        answers: answersDetail,
+        trigger_agent: true,
       });
       setSubmitResult(result);
     } catch (err) {
@@ -128,6 +140,12 @@ export function QuizArtifact({ title, content, metadata, sessionId }: QuizArtifa
                 );
               })}
             </div>
+            {/* Explication issue du <learning_artefact> (affichée après soumission) */}
+            {quizState.submitted && (q as QuizQuestion & { explanation?: string }).explanation && (
+              <p className="text-xs text-zinc-500 pl-4 italic">
+                💡 {(q as QuizQuestion & { explanation?: string }).explanation}
+              </p>
+            )}
           </div>
         ))}
 
@@ -146,7 +164,6 @@ export function QuizArtifact({ title, content, metadata, sessionId }: QuizArtifa
             <div className="text-sm text-zinc-400">
               Score : <span className="text-emerald-400 font-bold">{quizState.score}</span> / {quizState.questions.length}
             </div>
-            {/* Correctif 2 : feedback + maîtrise renvoyés par le backend */}
             {submitResult && (
               <div className="text-xs text-zinc-500 space-y-1">
                 <p className="text-zinc-300">{submitResult.feedback}</p>
@@ -157,6 +174,22 @@ export function QuizArtifact({ title, content, metadata, sessionId }: QuizArtifa
                   </p>
                 )}
               </div>
+            )}
+            {/* Feedback adaptatif renvoyé par LangGraph (boucle interactive) */}
+            {submitResult?.agent_feedback?.answer && (
+              <div className="mt-2 text-left rounded-lg border border-primary-500/30 bg-primary-500/5 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-primary-400 font-medium mb-1">
+                  Retour de ton tuteur
+                </p>
+                <p className="text-sm text-zinc-200 whitespace-pre-wrap">
+                  {submitResult.agent_feedback.answer}
+                </p>
+              </div>
+            )}
+            {submitting && (
+              <p className="text-xs text-zinc-500 animate-pulse">
+                Ton tuteur analyse ton résultat…
+              </p>
             )}
           </div>
         )}

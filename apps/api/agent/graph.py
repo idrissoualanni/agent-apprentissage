@@ -58,7 +58,7 @@ def build_agent_graph(retriever, model_manager, db_path=None, with_checkpointer=
         return retrieval_node(state, retriever, model_manager)
 
     def method_wrapper(state):
-        return method_selection_node(state, db_path)
+        return method_selection_node(state, model_manager, db_path)
 
     def generate_wrapper(state):
         return generate_node(state, model_manager)
@@ -111,7 +111,9 @@ def build_agent_graph(retriever, model_manager, db_path=None, with_checkpointer=
         # Correctif 1 : diagnostic déjà en cours → traiter la réponse courante
         if state.get("diagnostic_active"):
             return "answer_processing"
-        if state.get("method") == "diagnostic":
+        # V3 : le router ne code plus la méthode en dur ; il pose le flag
+        # needs_diagnostic (bootstrap : aucun domaine ni niveau connu).
+        if state.get("needs_diagnostic"):
             return "diagnostic"
         # Phase 3 : passer par competency_proposer (propose une compétence si aucune
         # n'est détectée ; transparent sinon).
@@ -138,8 +140,10 @@ def build_agent_graph(retriever, model_manager, db_path=None, with_checkpointer=
         # Correctif 1 : diagnostic en cours → on a posé une question, on attend la réponse
         if state.get("diagnostic_active"):
             return "session_memory"
-        # Correctif 1 : diagnostic terminé → message de bienvenue déjà dans answer
-        if state.get("method") == "diagnostic":
+        # V3 : le diagnostic vient de se terminer CE tour-ci (flag par tour,
+        # réinitialisé à chaque tour) → message de niveau déjà dans answer.
+        # Remplace l'ancien test method=="diagnostic" qui fuyait en stale au tour suivant.
+        if state.get("diagnostic_just_completed"):
             return "session_memory"
         if state.get("evaluation_score") is not None or state.get("feynman_score") is not None:
             return "evaluate"
@@ -163,7 +167,7 @@ def build_agent_graph(retriever, model_manager, db_path=None, with_checkpointer=
     def route_after_method(state):
         if state.get("method") in ("quiz", "feynman", "artifact"):
             return "confirmation"
-        if state.get("method") in ("web_search", "revision"):
+        if state.get("method") in ("web_search", "revision", "wikipedia"):
             return "tool"
         return "generate"
 

@@ -19,6 +19,14 @@ OLLAMA_EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL", "qwen3-embedding:0.
 
 OLLAMA_NUM_GPU = int(os.getenv("OLLAMA_NUM_GPU", "0"))
 
+# Garde-fou de génération : nombre max de tokens produits par appel LLM.
+# Sans limite, un modèle qui "boucle" (répétition) peut générer sans fin.
+LLM_NUM_PREDICT = int(os.getenv("LLM_NUM_PREDICT", "2048"))
+
+# Garde-fou du graphe LangGraph : nombre max de super-steps par invocation.
+# Protège contre tout cycle accidentel (le graphe est un DAG, mais au cas où).
+GRAPH_RECURSION_LIMIT = int(os.getenv("GRAPH_RECURSION_LIMIT", "40"))
+
 # ─── Ollama distant (cloud ou autre) ────────────────────────────────────────
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "")
 OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", "")

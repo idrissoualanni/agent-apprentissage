@@ -84,6 +84,8 @@ OPERATION_PRESETS: dict[str, dict] = {
     "diagnostic":        {"model_name": "minimax-m3",            "temperature": 0.3},
     "relevance_check":   {"model_name": "minimax-m3",            "temperature": 0.0},
     "summarize":         {"model_name": "minimax-m3",            "temperature": 0.3},
+    "method_selection":  {"model_name": "minimax-m3",            "temperature": 0.1},
+    "intent":            {"model_name": "minimax-m3",            "temperature": 0.0},
 }
 
 
@@ -249,6 +251,7 @@ class ModelManager:
             temperature=temperature,
             host=config.OLLAMA_BASE_URL,
             api_key=config.OLLAMA_API_KEY or "",
+            num_predict=config.LLM_NUM_PREDICT,
         )
 
     def _make_local_llm(self, model_name: str, temperature: float):
@@ -258,6 +261,7 @@ class ModelManager:
             model=model_name,
             temperature=temperature,
             num_gpu=config.OLLAMA_NUM_GPU,
+            num_predict=config.LLM_NUM_PREDICT,
         )
 
     def list_available(self) -> list[dict]:

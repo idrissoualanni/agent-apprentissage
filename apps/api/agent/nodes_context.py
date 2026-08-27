@@ -13,16 +13,14 @@ from langchain_core.messages import HumanMessage
 from apps.api.agent.state import AgentState
 from apps.api.db import crud
 from apps.api.agent.memory import learner_model as lm
+from apps.api.agent.prompts import (
+    COMPETENCY_PROPOSAL_PROMPT, IMPLICIT_UNDERSTANDING_PROMPT,
+)
 
 logger = logging.getLogger(__name__)
 
-
-COMPETENCY_PROPOSAL_PROMPT = (
-    "L'apprenant pose une question dans le domaine '{domain}' : « {question} ».\n"
-    "Aucune compétence existante ne correspond. Propose un nom court de compétence "
-    "(2 à 4 mots, en français) qui décrit ce que l'apprenant veut apprendre.\n"
-    "Réponds UNIQUEMENT avec le nom de la compétence, sans ponctuation ni explication."
-)
+# Prompts : centralisés dans apps/api/agent/prompts.py
+# (COMPETENCY_PROPOSAL_PROMPT, IMPLICIT_UNDERSTANDING_PROMPT)
 
 
 def competency_proposer_node(state: AgentState, model_manager, db_path=None) -> dict:
@@ -47,8 +45,21 @@ def competency_proposer_node(state: AgentState, model_manager, db_path=None) -> 
 
     if pending is None:
         # Première exécution : proposer un nom via le LLM.
+        # On lui fournit la liste des compétences EXISTANTES du domaine pour
+        # qu'il vérifie d'abord si la question s'y rattache (évite les doublons
+        # et garantit le rattachement au domaine abordé).
+        existing = crud.get_competencies(domain, db_path) or []
+        if existing:
+            existing_names = "\n".join(f"- {c['nom']}" for c in existing)
+        else:
+            existing_names = "(aucune compétence existante dans ce domaine)"
+
         llm = model_manager.get_llm("chat")
-        prompt = COMPETENCY_PROPOSAL_PROMPT.format(domain=domain, question=question)
+        prompt = COMPETENCY_PROPOSAL_PROMPT.format(
+            domain=domain,
+            question=question,
+            existing_competencies=existing_names,
+        )
         try:
             response = llm.invoke([HumanMessage(content=prompt)])
             proposed_name = response.content.strip().strip('"\'').split("\n")[0].strip()
@@ -59,7 +70,8 @@ def competency_proposer_node(state: AgentState, model_manager, db_path=None) -> 
         if not proposed_name:
             return {}
 
-        # Éviter les doublons : si une compétence similaire existe, on l'utilise directement.
+        # Éviter les doublons : si une compétence similaire existe (nom proche ou
+        # chevauchement de termes), on l'utilise directement.
         similar = lm.find_similar_competency(proposed_name, domain, db_path=db_path)
         if similar:
             return {"active_competency": similar["nom"]}
@@ -148,13 +160,9 @@ def _inferred_success_from_llm(question: str, answer: str, user_response: str,
     if not question or not user_response:
         return None
     from langchain_core.messages import HumanMessage
-    prompt = (
-        "L'apprenant a posé cette question : « {q} »\n"
-        "Le tuteur a répondu : « {a} »\n"
-        "L'apprenant a répondu ensuite : « {r} »\n\n"
-        "Estime sur une échelle de 0.0 à 1.0 si l'apprenant a compris la réponse.\n"
-        "Réponds UNIQUEMENT avec un nombre décimal entre 0.0 et 1.0."
-    ).format(q=question, a=answer, r=user_response)
+    prompt = IMPLICIT_UNDERSTANDING_PROMPT.format(
+        question=question, answer=answer, user_response=user_response,
+    )
     try:
         llm = model_manager.get_llm("feynman_eval")
         resp = llm.invoke([HumanMessage(content=prompt)])

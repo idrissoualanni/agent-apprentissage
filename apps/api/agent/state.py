@@ -22,6 +22,7 @@ class AgentState(TypedDict):
 
     # ─── Contexte RAG ────────────────────────────────────────────────────
     rag_needed: bool
+    needs_diagnostic: bool            # V3: flag de routage du router (bootstrap niveau)
     context: str
     rag_confidence: Optional[float]  # V3: score de confiance RAG
     rag_relevant: bool               # Correctif 5 : le contexte est-il pertinent ?
@@ -40,6 +41,7 @@ class AgentState(TypedDict):
     estimated_level: Optional[str]
     diagnostic_active: bool          # Correctif 1 : True pendant la boucle de diagnostic
     diagnostic_current_index: int    # Correctif 1 : index de la question en cours
+    diagnostic_just_completed: bool  # V3 : flag PAR TOUR, diagnostic terminé ce tour-ci
     next_step: Optional[str]         # Correctif 4 : "expliquer" | "approfondir" | "continuer"
 
     # ─── Quiz ────────────────────────────────────────────────────────────
@@ -114,6 +116,10 @@ STATE_DEFAULTS = {
     "diagnostic_current_index": 0,
     "diagnostic_questions": [],
     "diagnostic_answers": [],
+    # V3 — flag de routage du router (remplace method="diagnostic" codé en dur)
+    "needs_diagnostic": False,
+    # V3 — flag PAR TOUR : diagnostic terminé ce tour-ci (remplace method=="diagnostic")
+    "diagnostic_just_completed": False,
     # Correctif 4 — feedback adaptatif
     "next_step": None,
     # Correctif 5 — double-check RAG

@@ -21,7 +21,8 @@ class CloudOllamaChat:
     """
 
     def __init__(self, model: str, temperature: float = 0.3,
-                 host: str = "", api_key: str = ""):
+                 host: str = "", api_key: str = "",
+                 num_predict: Optional[int] = None):
         import ollama as ollama_lib
         import os as _os
 
@@ -35,6 +36,8 @@ class CloudOllamaChat:
         self._client = ollama_lib.Client(**client_kwargs) if client_kwargs else ollama_lib
         self._model = model
         self._temperature = temperature
+        # Garde-fou : limite le nombre de tokens générés (évite les boucles infinies).
+        self._num_predict = num_predict
 
     def _convert_messages(self, messages: Any) -> List[dict]:
         """Convertit les messages LangChain en format Ollama."""
@@ -62,11 +65,15 @@ class CloudOllamaChat:
         """Appel synchrone au LLM."""
         ollama_msgs = self._convert_messages(messages)
 
+        options = {"temperature": self._temperature}
+        if self._num_predict is not None:
+            options["num_predict"] = self._num_predict
+
         try:
             response = self._client.chat(
                 model=self._model,
                 messages=ollama_msgs,
-                options={"temperature": self._temperature},
+                options=options,
             )
         except Exception as e:
             import os as _os
@@ -84,7 +91,7 @@ class CloudOllamaChat:
                         "model": self._model,
                         "messages": ollama_msgs,
                         "stream": False,
-                        "options": {"temperature": self._temperature},
+                        "options": options,
                     },
                     headers={"Authorization": f"Bearer {api_key}"},
                     timeout=60.0,

@@ -145,14 +145,32 @@ export interface ConfirmationRequest {
   message_id?: number;
 }
 
-// ── Quiz submit (Correctif 2) ────────────────────────────────────────────
+// ── Quiz submit (artefact interactif <learning_artefact>) ────────────────
+export interface QuizAnswerDetail {
+  question: string;
+  selected: number | null;
+  correct: number;
+  is_correct: boolean;
+}
+
 export interface QuizSubmitRequest {
   session_id?: number;
+  thread_id?: string;
   competency_id?: number;
   competency_name?: string;
+  artifact_id?: string;
   correct: number;
   total: number;
+  answers?: QuizAnswerDetail[];
   user_id?: string;
+  trigger_agent?: boolean;
+}
+
+export interface AgentFeedback {
+  answer: string;
+  method?: string;
+  artifacts?: Artifact[];
+  thread_id?: string;
 }
 
 export interface QuizSubmitResponse {
@@ -167,6 +185,7 @@ export interface QuizSubmitResponse {
   };
   feedback: string;
   suggestion: "expliquer" | "approfondir" | "continuer";
+  agent_feedback?: AgentFeedback | null;
 }
 
 // ── SSE Events ───────────────────────────────────────────────────────────
@@ -183,6 +202,7 @@ export interface QuizQuestion {
   question: string;
   options: string[];
   correct_index: number;
+  explanation?: string;
 }
 
 export interface QuizState {

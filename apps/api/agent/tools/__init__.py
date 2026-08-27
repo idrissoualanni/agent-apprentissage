@@ -4,6 +4,7 @@ from apps.api.agent.tools.quiz import generate_quiz, evaluate_answer
 from apps.api.agent.tools.feynman import evaluate_feynman
 from apps.api.agent.tools.artifact import create_artifact
 from apps.api.agent.tools.web_search import web_search
+from apps.api.agent.tools.wikipedia import wikipedia_search
 from apps.api.agent.tools.progress import (
     update_mastery_after_quiz,
     update_mastery_after_feynman,
@@ -18,6 +19,7 @@ __all__ = [
     "evaluate_feynman",
     "create_artifact",
     "web_search",
+    "wikipedia_search",
     "update_mastery_after_quiz",
     "update_mastery_after_feynman",
     "get_progress_summary",

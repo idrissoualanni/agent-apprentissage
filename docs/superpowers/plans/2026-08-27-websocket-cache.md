@@ -331,18 +331,20 @@ Expected: FAIL (`calls["n"] == 2`)
 
 Dans `apps/api/agent/nodes.py`, ajouter en haut : `from apps.api.services import cache`.
 
-Dans `retrieval_node`, avant l'appel au retriever (ligne ~294) :
+**Important** : `retrieval_node` appelle `retrieve_semantic(retriever, question, top_k, threshold)` (de `apps/api/rag/retriever.py`) qui retourne un **3-tuple `(docs, best_score, has_relevant)`** — `best_score`/`has_relevant` pilotent les branches aval (fallback Wikipedia, `rag_confidence`). Il faut donc cacher le 3-tuple COMPLET :
+
 ```python
-    question = state.get("question", "")
     rk = cache.rag_key(question, top_k)
-    cached_docs = cache.cache_get(cache.rag_cache, rk)
-    if cached_docs is not None:
-        docs = cached_docs
+    cached = cache.cache_get(cache.rag_cache, rk)
+    if cached is not None:
+        docs, best_score, has_relevant = cached
     else:
-        docs = _retrieve_docs(retriever, question, top_k=top_k, threshold=threshold)
-        cache.cache_set(cache.rag_cache, rk, docs)
+        docs, best_score, has_relevant = retrieve_semantic(
+            retriever, question, top_k=top_k, threshold=threshold
+        )
+        cache.cache_set(cache.rag_cache, rk, (docs, best_score, has_relevant))
 ```
-(Adapter au code exact de `retrieval_node` : l'appel existant au retriever devient la branche `else` ; conserver la logique de tracking d'outil `_track_tool` autour de l'appel réel uniquement.)
+(Conserver tout le reste de `retrieval_node` inchangé : tracking d'outil, fallback Wikipedia, retours.)
 
 - [ ] **Step 4: Vérifier le succès**
 
@@ -583,6 +585,8 @@ manager = ConnectionManager()
 ```
 
 NB : l'accept du websocket est fait par l'endpoint (router) avant `connect`, pour pouvoir envoyer un close code custom si la session est inconnue.
+
+**Déviation documentée (heartbeat serveur)** : le spec §3.1 prévoyait un ping serveur toutes les 30s. Implémentation retenue : le ping client→serveur (25s, Task 9) + le nettoyage automatique lors d'un `send` échoué suffisent à détecter les connexions mortes pour une app mono-utilisateur. Un heartbeat serveur (tâche de fond par connexion) est reporté — complexité non justifiée ici (YAGNI).
 
 - [ ] **Step 4: Vérifier le succès**
 

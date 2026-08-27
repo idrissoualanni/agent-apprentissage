@@ -12,6 +12,7 @@ Inspire par Duolingo Birdbrain (probabilite de reussite) et Squirrel AI
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -274,6 +275,16 @@ def resolve_pending_competency(
         )
 
 
+def _normalize_tokens(name: str) -> set:
+    """Ensemble de tokens normalisés (minuscules, sans accents, mots > 2 lettres)."""
+    import unicodedata
+    cleaned = unicodedata.normalize("NFKD", name)
+    cleaned = "".join(c for c in cleaned if not unicodedata.combining(c))
+    cleaned = cleaned.lower()
+    tokens = {t for t in re.split(r"[^a-z0-9]+", cleaned) if len(t) > 2}
+    return tokens
+
+
 def find_similar_competency(
     proposed_name: str,
     domain: str,
@@ -281,16 +292,41 @@ def find_similar_competency(
 ) -> Optional[dict]:
     """Cherche une competence existante au nom proche (evite les doublons).
 
-    Retourne la competence si le nom (normalise) est deja present dans le domaine.
+    Deux niveaux de matching :
+    1. égalité exacte du nom normalisé ;
+    2. chevauchement de tokens (≥ 50 % des tokens en commun) pour capter les
+       reformulations / synonymes / sous-concepts rattachés au même domaine.
     """
     normalized = proposed_name.strip().lower()
+    proposed_tokens = _normalize_tokens(proposed_name)
+
     with get_connection(db_path) as conn:
         rows = conn.execute(
             "SELECT id, nom, domain FROM competency WHERE domain = ?", (domain,)
         ).fetchall()
+
+    # 1) Match exact.
     for r in rows:
         if r["nom"].strip().lower() == normalized:
             return {"id": r["id"], "nom": r["nom"], "domain": r["domain"]}
+
+    # 2) Match par chevauchement de tokens.
+    if proposed_tokens:
+        best = None
+        best_overlap = 0.0
+        for r in rows:
+            existing_tokens = _normalize_tokens(r["nom"])
+            if not existing_tokens:
+                continue
+            inter = proposed_tokens & existing_tokens
+            union = proposed_tokens | existing_tokens
+            overlap = len(inter) / len(union) if union else 0.0
+            if overlap > best_overlap:
+                best_overlap = overlap
+                best = r
+        if best is not None and best_overlap >= 0.5:
+            return {"id": best["id"], "nom": best["nom"], "domain": best["domain"]}
+
     return None
 
 

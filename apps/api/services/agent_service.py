@@ -191,7 +191,11 @@ def run_agent(
     graph = get_graph()
     mm = _get_model_manager()
 
-    config_dict = {"configurable": {"thread_id": thread_id}}
+    config_dict = {
+        "configurable": {"thread_id": thread_id},
+        # Garde-fou : borne le nombre de super-steps (protège d'un cycle accidentel).
+        "recursion_limit": config.GRAPH_RECURSION_LIMIT,
+    }
 
     # HITL : le thread a-t-il un interrupt en attente (confirmation demandee
     # au tour precedent) ?
@@ -336,7 +340,11 @@ def run_agent_streaming(
 
     graph = get_graph()
 
-    config_dict = {"configurable": {"thread_id": thread_id}}
+    config_dict = {
+        "configurable": {"thread_id": thread_id},
+        # Garde-fou : borne le nombre de super-steps (protège d'un cycle accidentel).
+        "recursion_limit": config.GRAPH_RECURSION_LIMIT,
+    }
 
     if resume_value is not None:
         # Reprise HITL : Command(resume=...) realimente l'appel interrupt()

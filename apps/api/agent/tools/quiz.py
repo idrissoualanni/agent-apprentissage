@@ -4,47 +4,13 @@ import json
 import re
 import logging
 from langchain.tools import tool
-from langchain_core.prompts import ChatPromptTemplate
+
+from apps.api.agent.prompts import QUIZ_PROMPT, format_context_block
+from apps.api.agent.artifacts_xml import parse_learning_artefacts
 
 logger = logging.getLogger(__name__)
 
-# ─── Prompt ───────────────────────────────────────────────────────────────
-
-QUIZ_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """Tu es un expert pédagogique. Génère un quiz de {nb_questions} questions à choix multiples sur la compétence suivante :
-
-Compétence : {competency_name}
-Contexte du document : {context}
-
-FORMAT ATTENDU (Markdown structuré) :
-
-Pour chaque question, utilise EXACTEMENT ce gabarit :
-
-Q1. [Texte de la question]
-A) [option 1]
-B) [option 2]
-C) [option 3]
-D) [option 4]
-Réponse: B
-
-Q2. [Texte de la question]
-A) [option 1]
-B) [option 2]
-C) [option 3]
-D) [option 4]
-Réponse: A
-
-...
-
-Règles :
-- Chaque question DOIT avoir 4 options A, B, C, D (toujours dans cet ordre).
-- La ligne "Réponse:" DOIT être placée juste après les 4 options.
-- Une seule lettre par "Réponse:".
-- Tu peux ajouter un corrigé détaillé après toutes les questions (ignoré).
-- Commence directement par Q1. sans préambule.
-
-Difficulté : {difficulte}. """),
-])
+# ─── Prompt : centralisé dans apps/api/agent/prompts.py (QUIZ_PROMPT) ─────
 
 # ─── Parser Markdown robuste ──────────────────────────────────────────────
 
@@ -181,7 +147,8 @@ def _extract_json(content: str) -> dict | None:
 
 @tool
 def generate_quiz(competency_name: str, context: str,
-                  nb_questions: int = 3, difficulte: str = "moyen") -> str:
+                  nb_questions: int = 3, difficulte: str = "moyen",
+                  level: str = "intermediaire", competency_id: str = "") -> str:
     """Génère un quiz structuré sur une compétence donnée.
 
     Args:
@@ -189,25 +156,51 @@ def generate_quiz(competency_name: str, context: str,
         context: Contexte documentaire pour alimenter les questions
         nb_questions: Nombre de questions à générer (défaut: 3)
         difficulte: Niveau de difficulté (facile/moyen/difficile)
+        level: Niveau de l'apprenant (debutant/intermediaire/avance)
+        competency_id: Identifiant DB de la compétence (pour l'interactivité)
 
     Returns:
         JSON string contenant les questions du quiz avec options et index correct
     """
+    import uuid
     from apps.api.services.model_manager import MODEL_MANAGER
+
+    # Identifiant unique de l'artefact (pour le suivi interactif).
+    slug = re.sub(r"[^a-z0-9]+", "-", competency_name.lower()).strip("-") or "quiz"
+    identifier = f"quiz-{slug}-{uuid.uuid4().hex[:6]}"
 
     llm_wrapper = MODEL_MANAGER.get_llm("quiz_generation")
     messages = QUIZ_PROMPT.format_messages(
         nb_questions=nb_questions,
         competency_name=competency_name,
-        context=context[:2000],
+        context_block=format_context_block(context[:2000]),
         difficulte=difficulte,
+        level=level or "intermediaire",
+        competency_id=competency_id or "",
+        identifier=identifier,
     )
 
     response = llm_wrapper.invoke(messages)
     content = response.content.strip()
 
-    questions = _parse_markdown_quiz(content, max_questions=nb_questions)
+    # 1) Priorité : artefact XML <learning_artefact type="quiz">.
+    questions = []
+    try:
+        _, artifacts = parse_learning_artefacts(content)
+        for art in artifacts:
+            if art.get("artifact_type") == "quiz" and art.get("content"):
+                parsed = json.loads(art["content"])
+                if isinstance(parsed, list) and parsed:
+                    questions = parsed
+                    break
+    except (json.JSONDecodeError, TypeError):
+        questions = []
 
+    # 2) Repli : Markdown structuré (ancien format).
+    if not questions:
+        questions = _parse_markdown_quiz(content, max_questions=nb_questions)
+
+    # 3) Repli : JSON brut.
     if not questions:
         data = _extract_json(content)
         if data and "questions" in data:

@@ -15,32 +15,19 @@ comme contexte, sans alourdir le prompt.
 
 import json
 import logging
-from typing import Optional
 
 from langchain_core.messages import HumanMessage
 
 from apps.api.agent.state import AgentState
 from apps.api.agent.memory import learner_model as lm
+from apps.api.agent.prompts import SESSION_MEMORY_PROMPT, parse_json_llm
 
 logger = logging.getLogger(__name__)
 
 # Fréquence de compaction : tous les 3 tours.
 MEMORY_EVERY_N_TURNS = 3
 
-
-SESSION_MEMORY_PROMPT = (
-    "Tu es le sous-agent mémoire d'un tuteur pédagogique. Analyse la conversation "
-    "ci-dessous et extrais les informations utiles pour suivre la progression de l'apprenant.\n\n"
-    "Conversation :\n{conversation}\n\n"
-    "Réponds UNIQUEMENT avec un JSON valide de cette forme :\n"
-    "{{\n"
-    '  "competences_abordees": ["..."],\n'
-    '  "niveau_estime": "debutant | intermediaire | avance",\n'
-    '  "reussites": ["..."],\n'
-    '  "erreurs_ou_lacunes": ["..."],\n'
-    '  "resume_textuel": "résumé court (2-3 phrases) de ce qui s\'est passé dans la session"\n'
-    "}}"
-)
+# Prompt : centralisé dans apps/api/agent/prompts.py (SESSION_MEMORY_PROMPT)
 
 
 def _format_conversation(chat_history, max_messages: int = 30) -> str:
@@ -59,23 +46,27 @@ def _format_conversation(chat_history, max_messages: int = 30) -> str:
     return "\n".join(lines)
 
 
-def _parse_memory_response(content: str) -> dict:
-    """Parse la réponse JSON du LLM, tolérant les blocs ```json."""
-    content = content.strip()
-    if "```json" in content:
-        start = content.index("```json") + len("```json")
-        end = content.index("```", start)
-        content = content[start:end].strip()
-    elif content.startswith("```"):
-        content = content.split("```")[1]
-        if content.startswith("json"):
-            content = content[4:]
-        content = content.strip()
-    try:
-        return json.loads(content)
-    except json.JSONDecodeError:
-        logger.warning("session_memory: réponse LLM non parsable, faits vides.")
-        return {}
+def _build_state_snapshot(state: AgentState, turn_count: int) -> str:
+    """Construit un instantané lisible de l'état du graphe / checkpoint.
+
+    Sert de référence de vérité au sous-agent mémoire : il doit croiser les
+    faits extraits de la conversation avec ces valeurs (voir SESSION_MEMORY_PROMPT).
+    """
+    profile = state.get("learner_profile") or {}
+    lines = [
+        f"- Tour actuel : {turn_count}",
+        f"- Domaine : {profile.get('domain') or 'non défini'}",
+        f"- Niveau global (checkpoint) : {profile.get('niveau_global') or 'non estimé'}",
+        f"- Niveau estimé cette session : {state.get('estimated_level') or 'non estimé'}",
+        f"- Compétence active : {state.get('active_competency') or 'aucune'}",
+        f"- Méthode en cours : {state.get('method') or 'aucune'}",
+        f"- Diagnostic actif : {bool(state.get('diagnostic_active'))}",
+        f"- Quiz actif : {bool(state.get('quiz_active'))}",
+        f"- Dernier score d'évaluation : {state.get('evaluation_score')}",
+        f"- Dernier score Feynman : {state.get('feynman_score')}",
+        f"- Prochaine étape suggérée : {state.get('next_step') or 'aucune'}",
+    ]
+    return "\n".join(lines)
 
 
 def session_memory_node(state: AgentState, model_manager, db_path=None) -> dict:
@@ -97,14 +88,41 @@ def session_memory_node(state: AgentState, model_manager, db_path=None) -> dict:
     if not conversation.strip():
         return {"turn_count": turn_count}
 
+    # Instantané de l'ÉTAT du graphe / checkpoint : référence de vérité que le
+    # sous-agent mémoire doit respecter (voir SESSION_MEMORY_PROMPT).
+    state_snapshot = _build_state_snapshot(state, turn_count)
+
+    # Résumé précédemment compacté (depuis le Learner Model / checkpoint) pour
+    # assurer la continuité et éviter de repartir de zéro.
+    previous_summary = "Aucun résumé précédent."
+    if session_id is not None:
+        try:
+            prev = lm.get_session_summary(session_id, db_path=db_path)
+            if prev:
+                previous_summary = (
+                    f"Résumé précédent (tour {prev.get('turn_count')}) :\n"
+                    f"{prev.get('text_summary', '')}\n"
+                    f"Faits : {json.dumps(prev.get('pedagogical_facts', {}), ensure_ascii=False)}"
+                )
+        except Exception as e:
+            logger.warning(f"session_memory: échec lecture résumé précédent ({e}).")
+
     llm = model_manager.get_llm("summarize")
-    prompt = SESSION_MEMORY_PROMPT.format(conversation=conversation)
+    prompt = SESSION_MEMORY_PROMPT.format(
+        conversation=conversation,
+        state_snapshot=state_snapshot,
+        previous_summary=previous_summary,
+    )
     try:
         response = llm.invoke([HumanMessage(content=prompt)])
-        facts = _parse_memory_response(response.content)
+        facts = parse_json_llm(response.content, default={})
     except Exception as e:
         logger.warning(f"session_memory: échec LLM ({e}); compaction ignorée.")
         return {"turn_count": turn_count}
+
+    if not isinstance(facts, dict):
+        logger.warning("session_memory: réponse LLM non parsable, faits vides.")
+        facts = {}
 
     text_summary = facts.pop("resume_textuel", "")
     pedagogical_facts = facts

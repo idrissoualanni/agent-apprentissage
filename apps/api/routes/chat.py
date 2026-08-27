@@ -33,13 +33,22 @@ class ConfirmationRequest(BaseModel):
 
 
 class QuizSubmitRequest(BaseModel):
-    """Correctif 2 : soumission du score d'un quiz interactif (artefact)."""
+    """Soumission du résultat d'un quiz interactif (artefact <learning_artefact>).
+
+    Le format de sortie du quiz porte assez de métadonnées (competency_id,
+    identifier, niveau) pour que FastAPI puisse renvoyer le résultat DANS
+    LangGraph et obtenir un feedback adaptatif de l'agent.
+    """
     session_id: Optional[int] = None
+    thread_id: Optional[str] = None
     competency_id: Optional[int] = None
     competency_name: Optional[str] = None
+    artifact_id: Optional[str] = None          # identifier du <learning_artefact>
     correct: int
     total: int
+    answers: Optional[list] = None             # [{question, selected, correct, is_correct}]
     user_id: str = "default_user"
+    trigger_agent: bool = True                 # relancer LangGraph pour le feedback
 
 
 @router.post("")
@@ -69,6 +78,7 @@ def chat(req: ChatRequest):
             user_id=req.user_id,
             model_override=req.model_override,
             force_web_search=req.force_web_search,
+            session_id=req.session_id,
         )
         return StreamingResponse(
             stream_tokens(token_gen),
@@ -86,6 +96,7 @@ def chat(req: ChatRequest):
             user_id=req.user_id,
             model_override=req.model_override,
             force_web_search=req.force_web_search,
+            session_id=req.session_id,
         )
 
         # Sauvegarder les messages en DB si session_id fourni
@@ -140,6 +151,7 @@ def confirm_action(req: ConfirmationRequest):
         thread_id=thread_id,
         user_id=req.user_id,
         user_confirmed=req.accepted,
+        session_id=req.session_id,
     )
 
     # Sauvegarder le message si session_id
@@ -212,7 +224,7 @@ def quiz_submit(req: QuizSubmitRequest):
             import logging
             logging.getLogger(__name__).warning(f"Échec enregistrement quiz: {e}")
 
-    # Correctif 4 : feedback adaptatif selon le ratio
+    # Feedback adaptatif "statique" selon le ratio (utilisé si l'agent n'est pas relancé)
     if ratio >= 0.7:
         feedback = f"Excellent ! {req.correct}/{req.total}. Tu maîtrises bien ce sujet."
         suggestion = "approfondir"
@@ -223,6 +235,49 @@ def quiz_submit(req: QuizSubmitRequest):
         feedback = f"{req.correct}/{req.total}. Pas de souci, on va reprendre les bases."
         suggestion = "expliquer"
 
+    # BOUCLE INTERACTIVE : réinjecter le résultat DANS LangGraph pour que
+    # l'agent produise un feedback adaptatif et propose la suite.
+    agent_feedback = None
+    agent_answer = None
+    if req.trigger_agent:
+        thread_id = req.thread_id
+        if not thread_id and req.session_id:
+            thread_id = get_thread_id_from_session(req.session_id)
+        if thread_id:
+            try:
+                result = agent_service.run_quiz_feedback(
+                    thread_id=thread_id,
+                    user_id=req.user_id,
+                    competency_name=req.competency_name or "ce sujet",
+                    correct=req.correct,
+                    total=req.total,
+                    answers=req.answers,
+                    session_id=req.session_id,
+                )
+                agent_answer = result.get("answer", "")
+                agent_feedback = {
+                    "answer": agent_answer,
+                    "method": result.get("method"),
+                    "artifacts": result.get("artifacts", []),
+                    "thread_id": result.get("thread_id"),
+                }
+                # Sauvegarder le feedback de l'agent dans la session.
+                if req.session_id and agent_answer:
+                    try:
+                        crud.add_message(
+                            session_id=req.session_id,
+                            role="assistant",
+                            content=agent_answer,
+                            method_used=result.get("method"),
+                            user_id=req.user_id,
+                            db_path=config.DB_PATH,
+                        )
+                    except Exception:
+                        pass
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Échec feedback agent: {e}")
+
     return {
         "correct": req.correct,
         "total": req.total,
@@ -230,4 +285,5 @@ def quiz_submit(req: QuizSubmitRequest):
         "mastery": mastery,
         "feedback": feedback,
         "suggestion": suggestion,
+        "agent_feedback": agent_feedback,
     }

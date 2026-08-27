@@ -112,9 +112,10 @@ def _needs_web_search(question: str) -> bool:
         r"(dernière?|nouveau|récent|actuel|aujourd'hui|ce\s+mois|cette\s+année)",
         r"(actualité|news|événement|sommert|breaking)",
         r"(combien\s+coûte|quel\s+prix|que\s+vaut)",
-        r"(stock|action|crypto|bitcoin|ethereum)",
+        # \b évite de matcher "action" dans "fractions", "match" dans un autre mot, etc.
+        r"\b(stock|action|crypto|bitcoin|ethereum)\b",
         r"(météo|weather|température)",
-        r"(score|résultat|match|coupe|championnat)",
+        r"\b(score|résultat|match|coupe|championnat)\b",
     ]
     for pattern in WEB_PATTERNS:
         if re.search(pattern, q):
@@ -690,7 +691,7 @@ def method_selection_node(state: AgentState, model_manager=None, db_path=None) -
 def generate_node(state: AgentState, model_manager) -> dict:
     """Génère la réponse selon la méthode choisie."""
     # Ne pas écraser une réponse déjà produite (diagnostic, quiz, feynman, etc.)
-    if state.get("answer") and state.get("method") in ("quiz", "feynman", "artifact", "web_search", "revision", "diagnostic"):
+    if state.get("answer") and state.get("method") in ("quiz", "feynman", "artifact", "web_search", "wikipedia", "revision", "diagnostic"):
         return {}
 
     # Correctif 5 : si le RAG était requis mais non pertinent, répondre honnêtement
