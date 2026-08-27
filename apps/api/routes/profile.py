@@ -16,14 +16,14 @@ class ProfileUpdate(BaseModel):
 
 
 @router.get("")
-async def get_profile():
+def get_profile():
     """Récupère le profil apprenant."""
     profile = crud.get_profile(db_path=config.DB_PATH)
     return profile
 
 
 @router.put("")
-async def update_profile(req: ProfileUpdate):
+def update_profile(req: ProfileUpdate):
     """Met à jour le profil apprenant."""
     crud.update_profile(
         domain=req.domain,
@@ -34,14 +34,14 @@ async def update_profile(req: ProfileUpdate):
 
 
 @router.get("/tree")
-async def get_competency_tree(domain: str = ""):
+def get_competency_tree(domain: str = ""):
     """Récupère l'arbre des compétences pour un domaine."""
     tree = crud.get_competency_tree(domain, db_path=config.DB_PATH)
     return {"tree": tree}
 
 
 @router.get("/competencies")
-async def list_competencies(domain: str = ""):
+def list_competencies(domain: str = ""):
     """Liste les compétences d'un domaine."""
     comps = crud.get_competencies(domain, db_path=config.DB_PATH)
     return {"competencies": comps}

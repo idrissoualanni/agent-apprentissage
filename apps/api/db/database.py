@@ -23,6 +23,34 @@ def is_postgres() -> bool:
     return bool(os.getenv("DATABASE_URL"))
 
 
+_pg_pool = None
+_pg_pool_failed = False
+
+
+def _get_pg_pool():
+    """Pool de connexions Postgres paresseux (singleton par processus).
+
+    Retourne None si le pool ne peut pas etre cree (fallback sur une
+    connexion directe a chaque appel).
+    """
+    global _pg_pool, _pg_pool_failed
+    if _pg_pool is not None or _pg_pool_failed:
+        return _pg_pool
+    try:
+        from psycopg2 import pool as _pool
+        _pg_pool = _pool.ThreadedConnectionPool(
+            minconn=1,
+            maxconn=8,
+            dsn=os.getenv("DATABASE_URL"),
+            connect_timeout=10,
+        )
+        logger.info("Pool de connexions Postgres initialise (1-8)")
+    except Exception as e:
+        _pg_pool_failed = True
+        logger.warning(f"Pool Postgres indisponible, fallback connexion directe: {e}")
+    return _pg_pool
+
+
 def _adapt_sql_for_postgres(sql: str) -> str:
     """Adapte une requete SQL SQLite pour PostgreSQL."""
     # datetime('now') -> NOW()
@@ -160,11 +188,21 @@ def get_db_connection(db_path: Optional[Path] = None):
 
     Compatible avec l'ancien get_connection de crud.py : yield une connexion
     avec commit/rollback automatique.
+
+    Postgres : utilise un pool de connexions (ThreadedConnectionPool) pour
+    eviter de payer l'etablissement TCP+TLS a chaque requete (~1s depuis
+    l'Europe vers Neon us-east-2).
     """
     if is_postgres():
         import psycopg2
         import psycopg2.extras
-        conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        pool = _get_pg_pool()
+        if pool is not None:
+            conn = pool.getconn()
+            from_pool = True
+        else:
+            conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+            from_pool = False
         conn.autocommit = False
         # RealDictCursor : acces par nom de colonne (equivalent sqlite3.Row).
         adapter = _PostgresConnAdapter(conn, cursor_factory=psycopg2.extras.RealDictCursor)
@@ -175,7 +213,16 @@ def get_db_connection(db_path: Optional[Path] = None):
             conn.rollback()
             raise
         finally:
-            conn.close()
+            if from_pool:
+                # rollback de securite avant remise au pool (pgbouncer
+                # transactionnel : la connexion doit revenir propre).
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+                pool.putconn(conn)
+            else:
+                conn.close()
     else:
         from apps.api.config import DB_PATH
         path = db_path or DB_PATH

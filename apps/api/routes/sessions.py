@@ -22,14 +22,14 @@ class SessionUpdate(BaseModel):
 
 
 @router.get("")
-async def list_sessions(user_id: str = "default_user"):
+def list_sessions(user_id: str = "default_user"):
     """Liste les sessions de l'utilisateur."""
     sessions = crud.list_sessions(user_id, db_path=config.DB_PATH)
     return {"sessions": sessions}
 
 
 @router.post("")
-async def create_session(req: SessionCreate):
+def create_session(req: SessionCreate):
     """Crée une nouvelle session."""
     thread_id = str(uuid.uuid4())
     session_id = crud.create_session(
@@ -42,7 +42,7 @@ async def create_session(req: SessionCreate):
 
 
 @router.get("/{session_id}")
-async def get_session(session_id: int):
+def get_session(session_id: int):
     """Récupère une session par ID."""
     session = crud.get_session(session_id, db_path=config.DB_PATH)
     if not session:
@@ -51,7 +51,7 @@ async def get_session(session_id: int):
 
 
 @router.put("/{session_id}")
-async def update_session(session_id: int, req: SessionUpdate):
+def update_session(session_id: int, req: SessionUpdate):
     """Met à jour le titre d'une session."""
     if req.title:
         crud.update_session_title(session_id, req.title, db_path=config.DB_PATH)
@@ -59,7 +59,7 @@ async def update_session(session_id: int, req: SessionUpdate):
 
 
 @router.delete("/{session_id}")
-async def delete_session(session_id: int):
+def delete_session(session_id: int):
     """Supprime une session et son checkpoint."""
     thread_id = get_thread_id_from_session(session_id)
     if thread_id:
@@ -69,7 +69,7 @@ async def delete_session(session_id: int):
 
 
 @router.get("/{session_id}/messages")
-async def get_messages(session_id: int):
+def get_messages(session_id: int):
     """Récupère les messages d'une session."""
     messages = crud.get_session_messages(session_id, db_path=config.DB_PATH)
     return {"messages": messages}

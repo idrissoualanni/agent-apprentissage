@@ -21,14 +21,14 @@ def _get_manager() -> ModelManager:
 
 
 @router.get("/catalog")
-async def list_catalog():
+def list_catalog():
     """Liste le catalogue complet de modèles."""
     mm = _get_manager()
     return {"catalog": mm.list_available()}
 
 
 @router.get("/active")
-async def get_active():
+def get_active():
     """Retourne les modèles actifs (par opération)."""
     return {
         "active": {
@@ -39,7 +39,7 @@ async def get_active():
 
 
 @router.post("/select")
-async def select_model(operation: str, model_id: str):
+def select_model(operation: str, model_id: str):
     """Sélectionne un modèle pour une opération (en mémoire jusqu'au restart)."""
     mm = _get_manager()
     if mm.get_config(model_id) is None:
@@ -51,7 +51,7 @@ async def select_model(operation: str, model_id: str):
 
 
 @router.get("/status")
-async def model_status():
+def model_status():
     """Statut des modèles (connectivité Ollama)."""
     from apps.api.llm.cloud_providers import list_local_models
     try:

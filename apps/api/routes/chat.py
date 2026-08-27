@@ -43,11 +43,14 @@ class QuizSubmitRequest(BaseModel):
 
 
 @router.post("")
-async def chat(req: ChatRequest):
+def chat(req: ChatRequest):
     """Point d'entrée principal — envoie une question à l'agent.
 
     Accepte session_id (frontend) OU thread_id (direct).
     Retourne SSE si streaming=True, JSON sinon.
+
+    NB : `def` (et non `async def`) pour que l'appel bloquant run_agent
+    s'execute dans le pool de threads sans bloquer l'event loop.
     """
     if not req.question.strip():
         raise HTTPException(400, "La question ne peut pas être vide")
@@ -124,7 +127,7 @@ async def chat(req: ChatRequest):
 
 
 @router.post("/confirm")
-async def confirm_action(req: ConfirmationRequest):
+def confirm_action(req: ConfirmationRequest):
     """Gère la réponse HITL (confirmation utilisateur)."""
     thread_id = req.thread_id
     if not thread_id and req.session_id:
@@ -167,7 +170,7 @@ async def confirm_action(req: ConfirmationRequest):
 
 
 @router.post("/quiz-submit")
-async def quiz_submit(req: QuizSubmitRequest):
+def quiz_submit(req: QuizSubmitRequest):
     """Correctif 2 : reçoit le score d'un quiz interactif et met à jour la maîtrise Leitner.
 
     Correctif 4 : retourne aussi un feedback adaptatif selon le ratio de réussite.

@@ -12,14 +12,14 @@ router = APIRouter(tags=["documents"])
 
 
 @router.get("")
-async def list_documents():
+def list_documents():
     """ Liste les documents indexés."""
     docs = crud.list_documents(db_path=config.DB_PATH)
     return {"documents": docs}
 
 
 @router.post("/upload")
-async def upload_pdf(file: UploadFile = File(...)):
+def upload_pdf(file: UploadFile = File(...)):
     """Upload un PDF et l'indexe dans ChromaDB."""
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(400, "Seuls les fichiers PDF sont acceptés")
@@ -47,13 +47,13 @@ async def upload_pdf(file: UploadFile = File(...)):
 
 
 @router.get("/status")
-async def indexing_status():
+def indexing_status():
     """Retourne le statut d'indexation."""
     return rag_service.get_indexing_status()
 
 
 @router.delete("/{filename}")
-async def delete_document(filename: str):
+def delete_document(filename: str):
     """Supprime un document."""
     pdf_path = config.PDF_DIR / filename
     if pdf_path.exists():
