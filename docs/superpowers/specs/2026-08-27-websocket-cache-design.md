@@ -62,10 +62,11 @@ Serveur → client :
 ### 3.3 `apps/api/ws/router.py` — endpoint `/ws/{session_id}`
 1. Valide la session (DB) ; refuse avec close code 4404 si inconnue
 2. Enregistre la connexion dans le ConnectionManager
-3. Boucle de réception : pour chaque message client, lance le traitement dans un thread (`asyncio.to_thread`) pour ne pas bloquer la boucle d'écoute
-4. `chat` → `run_agent_streaming` ; les tokens sont poussés au fur et à mesure via une file asyncio ; à la fin, `message` final + sauvegarde DB + notification éventuelle
+3. Boucle de réception : pour chaque message client, lance le traitement dans un thread (`asyncio.to_thread`) pour ne pas bloquer la boucle d'écoute. Pont thread → boucle asyncio via `loop.call_soon_threadsafe` (un `asyncio.Queue.put` direct depuis le thread n'est pas sûr)
+4. `chat` → `run_agent_streaming` ; les tokens sont poussés au fur et à mesure via une file asyncio ; à la fin, `message` final + sauvegarde DB + notification éventuelle. **Chat concurrent** : si un second `chat` arrive pendant qu'un stream est en cours, il est refusé avec `{type: "error", message: "agent_busy"}` (le client désactive l'envoi pendant le stream)
 5. `confirm` → détection de l'interrupt en attente → `Command(resume=accepted)` ; si un nouvel interrupt survient, renvoie `confirmation_request`
 6. `quiz_submit` → même logique que `/api/chat/quiz-submit` + notification de progression
+7. **À la connexion** : si le thread LangGraph de la session a un interrupt en attente (checkpoint), le serveur ré-émet immédiatement `confirmation_request` — la confirmation n'est jamais perdue après une reconnexion ou un changement d'onglet
 
 ### 3.4 Adaptation de `agent_service`
 - `run_agent_streaming` yield déjà des dicts `{token|done|metadata}` — réutilisé tel quel
@@ -80,6 +81,8 @@ Cache mémoire TTL+LRU borné (max 128 entrées par namespace, pour rester dans 
 - **`rag_retrieval`** : clé = hash(question + top_k), TTL 10 min — évite les allers-retours Chroma Cloud répétés
 
 Invalidation explicite dans `crud.py` (wrapper après écriture) pour garantir la cohérence.
+
+**Pas de cache des réponses LLM** (volontaire) : les réponses de l'agent dépendent du contexte conversationnel et ne sont pas réutilisables ; mettre en cache un LLM de chat produirait des réponses incohérentes.
 
 ### 4.2 Existant conservé
 - Recherche web : table `web_search_cache`, TTL 24 h ✅
@@ -101,9 +104,10 @@ Invalidation explicite dans `crud.py` (wrapper après écriture) pour garantir l
 
 ## 6. Gestion d'erreurs
 
-- **Coupure réseau** : reconnexion auto ; les messages envoyés pendant la coupure basculent en HTTP
+- **Coupure réseau** : reconnexion auto ; les messages envoyés pendant la coupure basculent en HTTP. À la reconnexion, l'état HITL en attente est ré-émis (voir §3.3 point 7)
 - **Machine Fly endormie** : le premier WS peut échouer (réveil) → reconnexion auto le couvre
 - **Agent en erreur** : `{type:"error"}` + message sauvegardé côté serveur
+- **Déconnexion pendant un run** : la déconnexion n'annule PAS l'agent en cours — le run se termine, la réponse est sauvegardée en DB (le client la récupère via `/sessions/{id}/messages` à la reconnexion)
 - **Double connexion même session** (2 onglets) : la connexion la plus récente remplace l'ancienne (close 4000)
 
 ## 7. Tests
