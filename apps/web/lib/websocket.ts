@@ -102,9 +102,13 @@ export function createAgentSocket(
       if (closedByUser) return;
       // 4000 = remplace par un autre onglet : ne pas reconnecter
       if (event.code === 4000) return;
-      if (attempt >= maxRetries) return; // le fallback HTTP prend le relais
+      // Ne jamais abandonner : la machine Fly met 5-9s a se reveiller de
+      // suspension. Retries rapides (1s/2s/4s) puis lentes (15s) en continu ;
+      // le fallback HTTP assure les envois en attendant.
       const delay =
-        Math.min(15000, 1000 * Math.pow(2, attempt)) + Math.random() * 500;
+        attempt < maxRetries
+          ? Math.min(15000, 1000 * Math.pow(2, attempt)) + Math.random() * 500
+          : 15000;
       attempt += 1;
       reconnectTimer = setTimeout(connect, delay);
     };

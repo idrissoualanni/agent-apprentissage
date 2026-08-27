@@ -36,7 +36,9 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
   // WebSocket : streaming reel + confirmations sur la meme connexion
   const socketRef = useRef<AgentSocket | null>(null);
   const streamingRef = useRef("");
-  const [socketConnected, setSocketConnected] = useState(false);
+  // Optimiste : pas de banniere au chargement (le socket est en cours de
+  // connexion) ; la banniere n'apparait qu'apres un echec reel.
+  const [socketConnected, setSocketConnected] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
 
   const scrollToBottom = () => {
