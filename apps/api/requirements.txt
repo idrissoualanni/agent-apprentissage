@@ -21,6 +21,8 @@ langchain-chroma>=0.2.0
 # ─── Utilitaires ──────────────────────────────────────────────────────────
 # ddgs : DuckDuckGo search (web_search tool de l'agent)
 ddgs>=6.0.0
+# cachetools : caches memoire TTL+LRU (profil, competences, RAG)
+cachetools>=5.3.0
 python-multipart>=0.0.6
 python-dotenv>=1.0.0
 pydantic>=2.0.0
