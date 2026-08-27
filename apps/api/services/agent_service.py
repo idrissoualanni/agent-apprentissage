@@ -361,7 +361,7 @@ def run_agent_streaming(
     try:
         for event in graph.stream(invoke_input, config=config_dict):
             for node_name, node_output in event.items():
-                if "answer" in node_output and node_output["answer"]:
+                if node_output and "answer" in node_output and node_output["answer"]:
                     answer = node_output["answer"]
                     if answer != full_answer:
                         new_text = answer[len(full_answer):]
