@@ -9,6 +9,7 @@ import { Composer } from "./Composer";
 import { ArtifactRenderer } from "@/components/artifacts/ArtifactRenderer";
 import { sessions, chat } from "@/lib/api";
 import { streamChat, parseJSONResponse } from "@/lib/sse";
+import { createAgentSocket, type AgentSocket } from "@/lib/websocket";
 import type { ChatMessage, ToolUsage, StreamEvent } from "@/lib/types";
 
 interface ChatWindowProps {
@@ -32,6 +33,11 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
   } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // WebSocket : streaming reel + confirmations sur la meme connexion
+  const socketRef = useRef<AgentSocket | null>(null);
+  const streamingRef = useRef("");
+  const [socketConnected, setSocketConnected] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -73,6 +79,53 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
 
+  // Connexion WebSocket par session (streaming reel + HITL + notifications).
+  useEffect(() => {
+    if (!sessionId) return;
+    const socket = createAgentSocket(sessionId, "default_user", {
+      onToken: (text) => {
+        streamingRef.current += text;
+        setStreamingText(streamingRef.current);
+      },
+      onMessage: (msg) => {
+        const assistantMsg: ChatMessage = {
+          id: Date.now(),
+          role: "assistant",
+          content: String(msg.answer || ""),
+          method: msg.method as string | undefined,
+          tools_used: msg.tool_transparency as ToolUsage[] | undefined,
+          artifacts: msg.artifacts as ChatMessage["artifacts"],
+          created_at: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+        setStreamingText("");
+        streamingRef.current = "";
+        setIsStreaming(false);
+      },
+      onConfirmationRequest: (type, prompt) => {
+        setPendingConfirmation({ type, prompt, messageId: Date.now() });
+        setIsStreaming(false);
+        setStreamingText("");
+        streamingRef.current = "";
+      },
+      onNotification: (kind, data) => {
+        if (kind === "revision_due") {
+          setNotification(`📅 ${data.count} révision(s) due(s)`);
+        }
+      },
+      onError: (message) => {
+        if (message === "agent_busy") return; // l'UI desactive deja l'envoi
+        console.error("WS error:", message);
+      },
+      onStatusChange: setSocketConnected,
+    });
+    socketRef.current = socket;
+    return () => {
+      socket.close();
+      socketRef.current = null;
+    };
+  }, [sessionId]);
+
   const handleSend = useCallback(async (question: string, forceWebSearch: boolean = false) => {
     const trimmed = question.trim();
     if (!trimmed || isStreaming) return;
@@ -90,6 +143,19 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
     };
     setMessages((prev) => [...prev, userMsg]);
 
+    // Chemin WebSocket (streaming reel) si connecte
+    const sent = socketRef.current?.send({
+      type: "chat",
+      question: trimmed,
+      force_web_search: forceWebSearch,
+    });
+    if (sent) {
+      streamingRef.current = "";
+      setStreamingMethod(undefined);
+      return; // la reponse arrive par onToken/onMessage
+    }
+
+    // Sinon : fallback HTTP
     try {
       const response = await chat.send({
         question: trimmed,
@@ -150,6 +216,27 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
   const handleConfirm = async (accepted: boolean) => {
     if (!pendingConfirmation) return;
 
+    // Chemin WebSocket si connecte (reprise HITL temps reel)
+    const sent = socketRef.current?.send({ type: "confirm", accepted });
+    if (sent) {
+      setPendingConfirmation(null);
+      if (!accepted) {
+        const msg: ChatMessage = {
+          id: Date.now(),
+          role: "assistant",
+          content: "Pas de souci ! Pose-moi une autre question.",
+          created_at: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, msg]);
+      } else {
+        setIsStreaming(true);
+        streamingRef.current = "";
+        setStreamingText("");
+      }
+      return;
+    }
+
+    // Sinon : fallback HTTP
     try {
       const response = await chat.confirm({
         message_id: pendingConfirmation.messageId,
@@ -213,6 +300,26 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
               className="px-3 py-1.5 rounded-md bg-red-900/40 hover:bg-red-900/60 text-red-200 text-sm transition-colors"
             >
               Réessayer
+            </button>
+          </div>
+        )}
+
+        {/* Statut de la connexion temps reel */}
+        {!socketConnected && !loadError && (
+          <div className="text-xs text-amber-400/80 px-1">
+            ⚡ Connexion temps réel indisponible — mode classique
+          </div>
+        )}
+
+        {/* Notification (revisions dues) */}
+        {notification && (
+          <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-primary-900/50 bg-primary-950/20 text-xs text-primary-300">
+            <span>{notification}</span>
+            <button
+              onClick={() => setNotification(null)}
+              className="ml-2 text-primary-400 hover:text-primary-200"
+            >
+              ✕
             </button>
           </div>
         )}
