@@ -70,6 +70,7 @@ from apps.api.routes.documents import router as documents_router
 from apps.api.routes.profile import router as profile_router
 from apps.api.routes.progress import router as progress_router
 from apps.api.routes.models import router as models_router
+from apps.api.ws.router import router as ws_router
 
 app.include_router(chat_router, prefix="/api/chat")
 app.include_router(sessions_router, prefix="/api/sessions")
@@ -77,3 +78,4 @@ app.include_router(documents_router, prefix="/api/documents")
 app.include_router(profile_router, prefix="/api/profile")
 app.include_router(progress_router, prefix="/api/progress")
 app.include_router(models_router, prefix="/api/models")
+app.include_router(ws_router)  # WebSocket : /ws/{session_id} (pas de prefix)

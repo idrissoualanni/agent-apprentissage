@@ -78,6 +78,8 @@ _PER_TURN_RESETS = {
     "web_search_results": None,
     "session_id": None,
     "next_step": None,
+    "needs_diagnostic": False,
+    "diagnostic_just_completed": False,
 }
 
 
@@ -91,6 +93,7 @@ def _build_initial_state(
     force_web_search: bool = False,
     streaming: bool = False,
     user_confirmed=None,
+    session_id=None,
 ) -> dict:
     """Construit l'etat d'entree sans ecraser l'etat persistant du thread.
 
@@ -98,6 +101,10 @@ def _build_initial_state(
     - Tours suivants : uniquement les champs du tour courant ; l'etat
       persistant (diagnostic en cours, memoire de session, ...) est
       restaure par le checkpointer.
+
+    NB : session_id est (re)injecté à chaque tour APRÈS _PER_TURN_RESETS afin
+    que la boucle mémoire fonctionne : session_memory_node persiste le résumé
+    compacté en DB et context_builder_node recharge le contexte de session.
     """
     initial_state = {
         "question": question,
@@ -107,6 +114,7 @@ def _build_initial_state(
         "force_web_search": force_web_search,
         "streaming": streaming,
         **_PER_TURN_RESETS,
+        "session_id": session_id,
     }
     if user_confirmed is not None:
         initial_state["user_confirmed"] = user_confirmed
@@ -161,6 +169,7 @@ def run_agent(
     user_confirmed: Optional[bool] = None,
     model_override: Optional[str] = None,
     force_web_search: bool = False,
+    session_id: Optional[int] = None,
 ) -> dict:
     """Exécute l'agent sur une question et retourne la réponse.
 
@@ -171,6 +180,7 @@ def run_agent(
         user_confirmed: Confirmation HITL (True/False/None)
         model_override: Forcer un modèle spécifique
         force_web_search: Si True, force la méthode web_search
+        session_id: ID de session DB (boucle mémoire court/long terme)
 
     Returns:
         dict avec answer, method, artifacts, tool_transparency, etc.
@@ -204,6 +214,7 @@ def run_agent(
             force_web_search=force_web_search,
             streaming=False,
             user_confirmed=user_confirmed,
+            session_id=session_id,
         )
 
     logger.info(f"Exécution agent: question='{question[:50]}...', thread={thread_id[:8]}")
@@ -253,19 +264,72 @@ def run_agent(
     }
 
 
+def run_quiz_feedback(
+    thread_id: str,
+    user_id: str,
+    competency_name: str,
+    correct: int,
+    total: int,
+    answers: Optional[list] = None,
+    session_id: Optional[int] = None,
+) -> dict:
+    """Réinjecte le résultat d'un quiz interactif DANS LangGraph.
+
+    Le composant frontend a renvoyé le score (et éventuellement le détail des
+    réponses) via FastAPI ; on relance le graphe avec une question synthétique
+    décrivant le résultat, pour que l'agent produise un feedback adaptatif et
+    propose la suite (révision, approfondissement, etc.). La continuité est
+    assurée par le checkpointer (même thread_id).
+
+    Args:
+        thread_id: ID de thread LangGraph (continuité de la session)
+        user_id: ID utilisateur
+        competency_name: Nom de la compétence évaluée
+        correct: Nombre de bonnes réponses
+        total: Nombre total de questions
+        answers: Détail optionnel [{question, selected, correct, is_correct}]
+
+    Returns:
+        dict run_agent (answer, method, artifacts, ...)
+    """
+    ratio = (correct / total) if total else 0.0
+    detail = ""
+    if answers:
+        wrong = [a for a in answers if not a.get("is_correct", True)]
+        if wrong:
+            detail = " Questions ratées : " + " ; ".join(
+                str(w.get("question", ""))[:80] for w in wrong[:3]
+            )
+
+    question = (
+        f"[RÉSULTAT DE QUIZ] Je viens d'obtenir {correct}/{total} ({ratio:.0%}) "
+        f"au quiz sur « {competency_name} ».{detail} "
+        f"Fais-moi un retour adapté à ce score et propose-moi la suite."
+    )
+    return run_agent(question=question, thread_id=thread_id, user_id=user_id,
+                     session_id=session_id)
+
+
 def run_agent_streaming(
     question: str,
     thread_id: Optional[str] = None,
     user_id: str = "default_user",
     model_override: Optional[str] = None,
     force_web_search: bool = False,
+    session_id: Optional[int] = None,
+    resume_value=None,
 ):
     """Exécute l'agent en mode streaming (yield token par token).
 
     Yields des dict avec les champs:
     - token: texte incrémental
     - done: True à la fin
-    - metadata: dict avec method, artifacts, etc.
+    - metadata: dict avec method, artifacts, tool_transparency
+    - interrupt: payload HITL si le graphe s'est arrêté sur interrupt()
+
+    Args:
+        resume_value: si fourni (True/False), reprend un interrupt en
+            attente via Command(resume=...) au lieu d'une nouvelle question.
     """
     if thread_id is None:
         thread_id = str(uuid.uuid4())
@@ -274,22 +338,28 @@ def run_agent_streaming(
 
     config_dict = {"configurable": {"thread_id": thread_id}}
 
-    initial_state = _build_initial_state(
-        graph,
-        config_dict,
-        question=question,
-        user_id=user_id,
-        thread_id=thread_id,
-        model_override=model_override,
-        force_web_search=force_web_search,
-        streaming=True,
-    )
+    if resume_value is not None:
+        # Reprise HITL : Command(resume=...) realimente l'appel interrupt()
+        from langgraph.types import Command
+        invoke_input = Command(resume=resume_value)
+    else:
+        invoke_input = _build_initial_state(
+            graph,
+            config_dict,
+            question=question,
+            user_id=user_id,
+            thread_id=thread_id,
+            model_override=model_override,
+            force_web_search=force_web_search,
+            streaming=True,
+            session_id=session_id,
+        )
 
     logger.info(f"Exécution agent streaming: thread={thread_id[:8]}")
 
     full_answer = ""
     try:
-        for event in graph.stream(initial_state, config=config_dict):
+        for event in graph.stream(invoke_input, config=config_dict):
             for node_name, node_output in event.items():
                 if "answer" in node_output and node_output["answer"]:
                     answer = node_output["answer"]
@@ -298,11 +368,21 @@ def run_agent_streaming(
                         full_answer = answer
                         yield {"token": new_text, "done": False}
 
-        # Correctif 2 : récupérer les artefacts de l'état final
-        artifacts = []
+        # Etat final : method, artifacts et interrupt eventuel (HITL)
+        method, artifacts, transparency, interrupt_payload = None, [], [], None
         try:
-            final_state = graph.get_state(config_dict)
-            artifacts = final_state.values.get("artifacts", []) if final_state else []
+            snapshot = graph.get_state(config_dict)
+            if snapshot is not None:
+                values = snapshot.values or {}
+                method = values.get("method")
+                artifacts = values.get("artifacts", [])
+                transparency = values.get("tool_transparency", [])
+                if snapshot.next:
+                    for task in getattr(snapshot, "tasks", None) or []:
+                        interrupts = getattr(task, "interrupts", None)
+                        if interrupts:
+                            interrupt_payload = interrupts[0].value
+                            break
         except Exception:
             pass
 
@@ -311,9 +391,11 @@ def run_agent_streaming(
             "done": True,
             "metadata": {
                 "thread_id": thread_id,
-                "method": full_answer and "completed",
+                "method": method,
                 "artifacts": artifacts,
+                "tool_transparency": transparency,
             },
+            "interrupt": interrupt_payload,
         }
     except Exception as e:
         logger.error(f"Erreur agent streaming: {e}", exc_info=True)
