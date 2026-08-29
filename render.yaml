@@ -1,0 +1,43 @@
+# Render Blueprint — Agent d'Apprentissage (backend FastAPI)
+# Docs : https://render.com/docs/blueprint-spec
+#
+# Secrets sensibles (sync: false) : a saisir UNE fois dans le dashboard
+# Render lors du premier deploiement. Les valeurs ne sont pas dans ce fichier.
+services:
+  - type: web
+    name: agent-apprentissage-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile.api
+    plan: free
+    region: frankfurt          # le plus proche de Paris (ta DB Neon est en Ohio)
+    healthCheckPath: /health
+    autoDeploy: true           # deploy auto a chaque push GitHub sur main
+    envVars:
+      # ── Secrets (sync: false → dashboard) ─────────────────────────────
+      - key: OLLAMA_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: CHROMA_CLOUD_API_KEY
+        sync: false
+      - key: CHROMA_CLOUD_DATABASE
+        sync: false
+      - key: CHROMA_CLOUD_TENANT
+        sync: false
+      # ── Config non sensible ─────────────────────────────────────────────
+      - key: OLLAMA_BASE_URL
+        value: https://ollama.com
+      - key: OLLAMA_MODEL
+        value: minimax-m3
+      - key: OLLAMA_EMBEDDING_MODEL
+        value: qwen3-embedding:0.6b
+      - key: AVAILABLE_MODELS
+        value: minimax-m3,qwen3.5:397b,kimi-k2.7-code,deepseek-v4-flash:preview,gpt-oss:120b
+      - key: WEB_SEARCH_DEFAULT_PROVIDER
+        value: ddgs
+      - key: DB_PATH
+        value: /app/db/agent.db
+      - key: CHECKPOINT_DB
+        value: /app/checkpoints.db
+      - key: CHROMA_DIR
+        value: /app/data/chroma
