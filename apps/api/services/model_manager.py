@@ -30,46 +30,61 @@ DEFAULT_CATALOG: list[dict] = [
         "format_mode": "free_text",
         "max_tokens": 512,
     },
-    # ── Ollama Cloud (tous les LLMs) ──
+    # ── Ollama Cloud (LLMs accessibles avec la cle actuelle) ──
+    # gemma4:31b : rapide, bon rapport qualite/prix → chat et operations simples
     {
-        "model_name": "minimax-m3",
-        "display_name": "minimax-m3 (Cloud)",
+        "model_name": "gemma4:31b",
+        "display_name": "Gemma 4 31B (Cloud)",
         "provider": "ollama_cloud",
         "default_temperature": 0.3,
         "format_mode": "json_or_markdown",
         "max_tokens": 4096,
     },
-    {
-        "model_name": "qwen3.5:397b",
-        "display_name": "Qwen 3.5 397B (Cloud)",
-        "provider": "ollama_cloud",
-        "default_temperature": 0.3,
-        "format_mode": "json_or_markdown",
-        "max_tokens": 8192,
-    },
-    {
-        "model_name": "kimi-k2.7-code",
-        "display_name": "Kimi K2.7 Code (Cloud)",
-        "provider": "ollama_cloud",
-        "default_temperature": 0.2,
-        "format_mode": "strict_json",
-        "max_tokens": 4096,
-    },
-    {
-        "model_name": "deepseek-v4-flash:preview",
-        "display_name": "DeepSeek V4 Flash (Cloud)",
-        "provider": "ollama_cloud",
-        "default_temperature": 0.3,
-        "format_mode": "json_or_markdown",
-        "max_tokens": 4096,
-    },
+    # gpt-oss:120b : le plus puissant des gratuits → generation d'artefacts,
+    # quiz, evaluations structurees
     {
         "model_name": "gpt-oss:120b",
         "display_name": "GPT-OSS 120B (Cloud)",
         "provider": "ollama_cloud",
         "default_temperature": 0.3,
         "format_mode": "json_or_markdown",
+        "max_tokens": 8192,
+    },
+    # gpt-oss:20b : leger et rapide → petites taches (relevance_check, intent)
+    {
+        "model_name": "gpt-oss:20b",
+        "display_name": "GPT-OSS 20B (Cloud)",
+        "provider": "ollama_cloud",
+        "default_temperature": 0.0,
+        "format_mode": "strict_json",
+        "max_tokens": 2048,
+    },
+    # nemotron-3-nano:30b : compact → taches JSON strictes
+    {
+        "model_name": "nemotron-3-nano:30b",
+        "display_name": "Nemotron 3 Nano 30B (Cloud)",
+        "provider": "ollama_cloud",
+        "default_temperature": 0.2,
+        "format_mode": "strict_json",
         "max_tokens": 4096,
+    },
+    # nemotron-3-super : modele puissant generaliste → operations lourdes
+    {
+        "model_name": "nemotron-3-super",
+        "display_name": "Nemotron 3 Super (Cloud)",
+        "provider": "ollama_cloud",
+        "default_temperature": 0.3,
+        "format_mode": "json_or_markdown",
+        "max_tokens": 8192,
+    },
+    # nemotron-3-ultra : le plus puissant → generation d'artefacts complexes
+    {
+        "model_name": "nemotron-3-ultra",
+        "display_name": "Nemotron 3 Ultra (Cloud)",
+        "provider": "ollama_cloud",
+        "default_temperature": 0.3,
+        "format_mode": "json_or_markdown",
+        "max_tokens": 8192,
     },
 ]
 
@@ -77,15 +92,15 @@ DEFAULT_CATALOG: list[dict] = [
 # ─── Presets par type d'operation ──────────────────────────────────────────
 
 OPERATION_PRESETS: dict[str, dict] = {
-    "chat":              {"model_name": "minimax-m3",            "temperature": 0.3},
-    "quiz_generation":   {"model_name": "kimi-k2.7-code",        "temperature": 0.2},
-    "feynman_eval":      {"model_name": "minimax-m3",            "temperature": 0.2},
-    "artifact":          {"model_name": "kimi-k2.7-code",        "temperature": 0.5},
-    "diagnostic":        {"model_name": "minimax-m3",            "temperature": 0.3},
-    "relevance_check":   {"model_name": "minimax-m3",            "temperature": 0.0},
-    "summarize":         {"model_name": "minimax-m3",            "temperature": 0.3},
-    "method_selection":  {"model_name": "minimax-m3",            "temperature": 0.1},
-    "intent":            {"model_name": "minimax-m3",            "temperature": 0.0},
+    "chat":              {"model_name": "gemma4:31b",             "temperature": 0.3},
+    "quiz_generation":   {"model_name": "gpt-oss:120b",           "temperature": 0.2},
+    "feynman_eval":      {"model_name": "gpt-oss:120b",           "temperature": 0.2},
+    "artifact":          {"model_name": "gpt-oss:120b",           "temperature": 0.5},
+    "diagnostic":        {"model_name": "gemma4:31b",             "temperature": 0.3},
+    "relevance_check":   {"model_name": "gpt-oss:20b",            "temperature": 0.0},
+    "summarize":         {"model_name": "gemma4:31b",             "temperature": 0.3},
+    "method_selection":  {"model_name": "gpt-oss:20b",            "temperature": 0.1},
+    "intent":            {"model_name": "gpt-oss:20b",            "temperature": 0.0},
 }
 
 
@@ -203,15 +218,16 @@ class ModelManager:
                          Utile pour LangGraph Studio / debug sans quota.
         """
         self._catalog = {m["model_name"]: m for m in DEFAULT_CATALOG}
-        # Chaine de fallback : modeles cloud uniquement (plus de local).
+        # Chaine de fallback : modeles cloud accessibles uniquement.
+        # (les anciens minimax/qwen/kimi/deepseek exigeaient un abonnement → 402)
         self._fallback_chain: list[str] = [
-            "minimax-m3", "qwen3.5:397b", "kimi-k2.7-code", "deepseek-v4-flash:preview",
+            "gemma4:31b", "gpt-oss:120b", "nemotron-3-super", "nemotron-3-nano:30b",
         ]
         self.force_local = force_local
         # NB: les modeles locaux LLM ont ete retires (cloud uniquement).
         # _local_model pointe desormais sur un modele cloud, au cas ou
         # force_local serait active par erreur.
-        self._local_model = "minimax-m3"
+        self._local_model = "gemma4:31b"
 
     def get_llm(self, operation: str, **overrides) -> FormatControlledLLM:
         """Retourne un LLM configure pour l'operation demandee."""
