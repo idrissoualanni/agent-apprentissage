@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
-/* « La lampe du tuteur » — palette sombre chaude.
-   surface / primary / zinc sont redéfinies en tons espresso + ambre afin que
+/* « Ciel nocturne » — palette sombre froide, accent bleu.
+   surface / primary / zinc redéfinis en tons ardoise + bleu afin que
    l'ensemble de l'app (y compris les pages pas encore restylées) hérite du
    thème sans toucher au balisage. */
 const config: Config = {
@@ -12,46 +12,46 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        /* Accent ambre — la lumière de la compréhension */
+        /* Accent bleu — la clarté de la compréhension */
         primary: {
-          50: "#fdf6e9",
-          100: "#faead0",
-          200: "#f5d5a0",
-          300: "#efbc6e",
-          400: "#f0b454",
-          500: "#e8a33d",
-          600: "#c98224",
-          700: "#a8691b",
-          800: "#8a5618",
-          900: "#6b4213",
-          950: "#40260a",
+          50: "#eff6ff",
+          100: "#dbeafe",
+          200: "#bfdbfe",
+          300: "#93c5fd",
+          400: "#60a5fa",
+          500: "#3b82f6",
+          600: "#2563eb",
+          700: "#1d4ed8",
+          800: "#1e40af",
+          900: "#1e3a8a",
+          950: "#172554",
         },
-        /* Surfaces espresso, du fond vers l'élévation */
+        /* Surfaces ardoise nuit, du fond vers l'élévation */
         surface: {
-          0: "#0f0d0a",
-          1: "#161310",
-          2: "#1e1a15",
-          3: "#28221b",
-          4: "#332c22",
+          0: "#0b0f16",
+          1: "#111722",
+          2: "#182030",
+          3: "#1f2937",
+          4: "#283345",
         },
-        /* Zinc chaud — remplace le gris froid de Tailwind pour texte/filets */
+        /* Zinc froid — gris ardoise pour texte/filets */
         zinc: {
-          50: "#faf7f0",
-          100: "#f2ecdf",
-          200: "#e4dbc8",
-          300: "#cfc3ab",
-          400: "#b3a894",
-          500: "#8b8069",
-          600: "#6f6653",
-          700: "#4a4335",
-          800: "#322c22",
-          900: "#211c14",
-          950: "#171310",
+          50: "#f8fafc",
+          100: "#f1f5f9",
+          200: "#e2e8f0",
+          300: "#cbd5e1",
+          400: "#94a3b8",
+          500: "#64748b",
+          600: "#475569",
+          700: "#334155",
+          800: "#1e293b",
+          900: "#0f172a",
+          950: "#020617",
         },
-        /* Vert sauge — maîtrise */
+        /* Vert — maîtrise */
         sage: {
-          DEFAULT: "#8fb573",
-          soft: "rgba(143, 181, 115, 0.14)",
+          DEFAULT: "#4ade80",
+          soft: "rgba(74, 222, 128, 0.14)",
         },
       },
       fontFamily: {
@@ -96,8 +96,8 @@ const config: Config = {
           "40%": { opacity: "1", transform: "scale(1)" },
         },
         glowPulse: {
-          "0%, 100%": { boxShadow: "0 0 0 0 rgba(232, 163, 61, 0)" },
-          "50%": { boxShadow: "0 0 22px 2px rgba(232, 163, 61, 0.12)" },
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(59, 130, 246, 0)" },
+          "50%": { boxShadow: "0 0 22px 2px rgba(59, 130, 246, 0.14)" },
         },
       },
     },

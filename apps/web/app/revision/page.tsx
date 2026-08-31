@@ -1,27 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { progress, type RevisionCalendarItem } from "@/lib/api";
 import {
-  Calendar,
-  MessageSquare,
-  LayoutDashboard,
-  FileText,
-  User,
-  Cpu,
   Clock,
   CheckCircle2,
 } from "lucide-react";
-
-const NAV_ITEMS = [
-  { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/revision", label: "Revision", icon: Calendar },
-  { href: "/documents", label: "Documents", icon: FileText },
-  { href: "/profile", label: "Profil", icon: User },
-  { href: "/models", label: "Modeles", icon: Cpu },
-];
+import { AppShell, SidebarColumn } from "@/components/layout/AppShell";
+import { NavSidebar } from "@/components/layout/NavSidebar";
 
 function formatDate(iso: string): string {
   try {
@@ -58,34 +44,13 @@ export default function RevisionPage() {
   }, []);
 
   return (
-    <div className="flex h-screen">
-      {/* Sidebar */}
-      <aside className="w-64 flex flex-col border-r border-zinc-800 bg-surface-1">
-        <div className="p-3 border-b border-zinc-800">
-          <span className="text-sm font-medium text-zinc-400">Navigation</span>
-        </div>
-        <div className="flex-1 p-2 space-y-0.5">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = item.href === "/revision";
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? "bg-surface-2 text-zinc-100"
-                    : "text-zinc-400 hover:bg-surface-2 hover:text-zinc-200"
-                }`}
-              >
-                <Icon size={16} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </aside>
-
+    <AppShell
+      sidebar={
+        <SidebarColumn>
+          <NavSidebar active="/revision" />
+        </SidebarColumn>
+      }
+    >
       {/* Main */}
       <div className="flex-1 overflow-y-auto p-6">
         <h1 className="text-2xl font-bold mb-6">Calendrier de revision</h1>
@@ -184,6 +149,6 @@ export default function RevisionPage() {
           </>
         )}
       </div>
-    </div>
+    </AppShell>
   );
 }

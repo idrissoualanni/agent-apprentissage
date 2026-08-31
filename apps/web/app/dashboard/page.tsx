@@ -1,20 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { progress } from "@/lib/api";
-import type { ProgressSummary, RevisionPlan as RevisionPlanType } from "@/lib/types";
 import {
-  LayoutDashboard,
-  MessageSquare,
-  FileText,
-  User,
-  Cpu,
   TrendingUp,
   BookOpen,
   AlertTriangle,
   CheckCircle2,
 } from "lucide-react";
+import { progress } from "@/lib/api";
+import type { ProgressSummary, RevisionPlan as RevisionPlanType } from "@/lib/types";
+import { AppShell, SidebarColumn } from "@/components/layout/AppShell";
+import { NavSidebar } from "@/components/layout/NavSidebar";
 import {
   BarChart,
   Bar,
@@ -27,14 +23,6 @@ import {
   Pie,
   Cell,
 } from "recharts";
-
-const NAV_ITEMS = [
-  { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/documents", label: "Documents", icon: FileText },
-  { href: "/profile", label: "Profil", icon: User },
-  { href: "/models", label: "Modeles", icon: Cpu },
-];
 
 const COLORS = ["#3b82f6", "#22c55e", "#eab308", "#ef4444", "#a855f7"];
 
@@ -63,37 +51,15 @@ export default function DashboardPage() {
     : [];
 
   return (
-    <div className="flex h-screen">
-      {/* Sidebar */}
-      <aside className="w-64 flex flex-col border-r border-zinc-800 bg-surface-1">
-        <div className="p-3 border-b border-zinc-800">
-          <span className="text-sm font-medium text-zinc-400">Navigation</span>
-        </div>
-        <div className="flex-1 p-2 space-y-0.5">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = item.href === "/dashboard";
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? "bg-surface-2 text-zinc-100"
-                    : "text-zinc-400 hover:bg-surface-2 hover:text-zinc-200"
-                }`}
-              >
-                <Icon size={16} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </aside>
-
-      {/* Main */}
+    <AppShell
+      sidebar={
+        <SidebarColumn>
+          <NavSidebar active="/dashboard" />
+        </SidebarColumn>
+      }
+    >
       <div className="flex-1 overflow-y-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+        <h1 className="text-2xl font-bold mb-6">Tableau de bord</h1>
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -211,6 +177,6 @@ export default function DashboardPage() {
           </>
         )}
       </div>
-    </div>
+    </AppShell>
   );
 }

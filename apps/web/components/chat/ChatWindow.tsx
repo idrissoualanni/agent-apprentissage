@@ -308,7 +308,7 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
 
         {/* Statut de la connexion temps reel */}
         {!socketConnected && !loadError && (
-          <div className="text-xs text-amber-400/80 px-1">
+          <div className="text-xs text-primary-400/80 px-1">
             ⚡ Connexion temps réel indisponible — mode classique
           </div>
         )}

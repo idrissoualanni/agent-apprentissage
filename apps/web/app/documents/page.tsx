@@ -1,28 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import { documents } from "@/lib/api";
 import type { Document as Doc, IndexingStatus } from "@/lib/types";
 import {
-  LayoutDashboard,
-  MessageSquare,
-  FileText,
-  User,
-  Cpu,
   Upload,
   Trash2,
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
-
-const NAV_ITEMS = [
-  { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/documents", label: "Documents", icon: FileText },
-  { href: "/profile", label: "Profil", icon: User },
-  { href: "/models", label: "Modeles", icon: Cpu },
-];
+import { AppShell, SidebarColumn } from "@/components/layout/AppShell";
+import { NavSidebar } from "@/components/layout/NavSidebar";
 
 export default function DocumentsPage() {
   const [docs, setDocs] = useState<Doc[]>([]);
@@ -75,33 +63,13 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="flex h-screen">
-      {/* Sidebar */}
-      <aside className="w-64 flex flex-col border-r border-zinc-800 bg-surface-1">
-        <div className="p-3 border-b border-zinc-800">
-          <span className="text-sm font-medium text-zinc-400">Navigation</span>
-        </div>
-        <div className="flex-1 p-2 space-y-0.5">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = item.href === "/documents";
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? "bg-surface-2 text-zinc-100"
-                    : "text-zinc-400 hover:bg-surface-2 hover:text-zinc-200"
-                }`}
-              >
-                <Icon size={16} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </aside>
+    <AppShell
+      sidebar={
+        <SidebarColumn>
+          <NavSidebar active="/documents" />
+        </SidebarColumn>
+      }
+    >
 
       {/* Main */}
       <div className="flex-1 overflow-y-auto p-6">
@@ -179,6 +147,6 @@ export default function DocumentsPage() {
           </div>
         )}
       </div>
-    </div>
+    </AppShell>
   );
 }
