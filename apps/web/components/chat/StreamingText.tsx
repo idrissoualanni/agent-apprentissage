@@ -11,20 +11,22 @@ const METHOD_LABELS: Record<string, string> = {
   feynman: "Feynman",
   quiz: "Quiz",
   web_search: "Web",
+  wikipedia: "Wikipédia",
   artifact: "Artefact",
-  revision: "Revision",
+  revision: "Révision",
   diagnostic: "Diagnostic",
 };
 
 const METHOD_COLORS: Record<string, string> = {
-  scaffold: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  socratic: "bg-purple-500/15 text-purple-400 border-purple-500/30",
-  feynman: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-  quiz: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  web_search: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
-  artifact: "bg-pink-500/15 text-pink-400 border-pink-500/30",
-  revision: "bg-orange-500/15 text-orange-400 border-orange-500/30",
-  diagnostic: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
+  scaffold: "bg-primary-500/15 text-primary-400 border-primary-500/30",
+  socratic: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+  feynman: "bg-rose-500/15 text-rose-300 border-rose-500/30",
+  quiz: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+  web_search: "bg-sky-500/15 text-sky-300 border-sky-500/30",
+  wikipedia: "bg-teal-500/15 text-teal-300 border-teal-500/30",
+  artifact: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30",
+  revision: "bg-orange-500/15 text-orange-300 border-orange-500/30",
+  diagnostic: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
 };
 
 export function StreamingText({ text, method }: StreamingTextProps) {

@@ -13,12 +13,14 @@ import logging
 import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from pydantic import ValidationError
 
 from apps.api.db import crud
 from apps.api.services import agent_service
 from apps.api.services.checkpoint import get_thread_id_from_session
 from apps.api.ws.manager import manager
 from apps.api.ws import protocol as p
+from apps.api.ws.schemas import WSIncoming
 import apps.api.config as config
 
 logger = logging.getLogger(__name__)
@@ -173,7 +175,19 @@ async def websocket_endpoint(websocket: WebSocket, session_id: int,
 
         while True:
             data = await websocket.receive_json()
-            mtype = data.get("type")
+
+            # ── Validation Pydantic de TOUT message entrant ──────────────
+            # Avant : data.get(...) brut — un payload mal formé circulait
+            # dans l'agent avec des types incohérents. Maintenant : rejet
+            # immédiat avec erreur explicite renvoyée au client.
+            try:
+                msg = WSIncoming.model_validate(data)
+            except ValidationError as e:
+                await manager.send(session_id, p.error_msg(
+                    f"invalid_payload: {e.errors()[0].get('msg', 'schema invalide')}"))
+                continue
+
+            mtype = msg.root.type
 
             if mtype == "ping":
                 await manager.send(session_id, p.pong_msg())
@@ -182,14 +196,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: int,
                 if manager.is_busy(session_id):
                     await manager.send(session_id, p.error_msg("agent_busy"))
                     continue
-                question = (data.get("question") or "").strip()
-                if not question:
-                    await manager.send(session_id, p.error_msg("empty_question"))
-                    continue
                 manager.set_busy(session_id, True)
                 asyncio.create_task(_run_stream_to_socket(
-                    session_id, thread_id, user_id, question,
-                    bool(data.get("force_web_search", False)),
+                    session_id, thread_id, user_id, msg.root.question,
+                    msg.root.force_web_search,
                 ))
 
             elif mtype == "confirm":
@@ -199,7 +209,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: int,
                 manager.set_busy(session_id, True)
                 asyncio.create_task(_run_stream_to_socket(
                     session_id, thread_id, user_id, "",
-                    False, resume_value=bool(data.get("accepted")),
+                    False, resume_value=msg.root.accepted,
                 ))
 
             elif mtype == "quiz_submit":
@@ -207,9 +217,9 @@ async def websocket_endpoint(websocket: WebSocket, session_id: int,
                     from apps.api.agent.tools.progress import update_mastery_from_score
                     import json as _json
                     res = update_mastery_from_score.invoke({
-                        "competency_id": data.get("competency_id"),
-                        "correct": int(data.get("correct", 0)),
-                        "total": int(data.get("total", 1)),
+                        "competency_id": msg.root.competency_id,
+                        "correct": msg.root.correct,
+                        "total": msg.root.total,
                     })
                     await manager.send(session_id, {
                         "type": "quiz_result",

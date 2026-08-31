@@ -8,9 +8,9 @@ interface ConfirmationButtonsProps {
 }
 
 const TYPE_CONFIG: Record<string, { icon: string; color: string; glow: string }> = {
-  quiz: { icon: "Q", color: "text-emerald-400", glow: "shadow-emerald-500/20" },
-  feynman: { icon: "F", color: "text-amber-400", glow: "shadow-amber-500/20" },
-  artifact: { icon: "A", color: "text-pink-400", glow: "shadow-pink-500/20" },
+  quiz: { icon: "Q", color: "text-emerald-300", glow: "shadow-emerald-500/20" },
+  feynman: { icon: "F", color: "text-rose-300", glow: "shadow-rose-500/20" },
+  artifact: { icon: "A", color: "text-fuchsia-300", glow: "shadow-fuchsia-500/20" },
 };
 
 export function ConfirmationButtons({
@@ -35,7 +35,7 @@ export function ConfirmationButtons({
             <div className="flex gap-2 mt-3">
               <button
                 onClick={onConfirm}
-                className="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-primary-600/30 active:scale-95"
+                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-zinc-950 text-sm font-bold rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-primary-600/30 active:scale-95"
               >
                 Oui, c'est parti
               </button>

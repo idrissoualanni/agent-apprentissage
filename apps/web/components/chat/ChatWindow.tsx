@@ -327,11 +327,28 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
         )}
 
         {messages.length === 0 && !streamingText && !loadError && (
-          <div className="flex flex-col items-center justify-center h-full text-zinc-500">
-            <p className="text-lg">Pose-moi une question !</p>
-            <p className="text-sm mt-1 text-zinc-600">
-              Je peux t'aider avec tes cours, creer des quizzes, ou expliquer des concepts.
+          <div className="flex flex-col items-center justify-center h-full text-center px-6">
+            <div className="font-display text-2xl text-zinc-200">
+              Qu&apos;as-tu envie de comprendre aujourd&apos;hui ?
+            </div>
+            <p className="text-sm mt-2 text-zinc-500 max-w-md">
+              Pose ta question : je m&apos;adapte à ton niveau — dialogue socratique,
+              quiz, Feynman ou explication pas à pas.
             </p>
+            <div className="flex flex-wrap justify-center gap-2 mt-5 max-w-lg">
+              {[
+                "Explique-moi les fractions comme si j'avais 10 ans",
+                "Fais-moi un quiz sur Python",
+                "Révise avec moi la photosynthèse",
+              ].map((suggestion) => (
+                <span
+                  key={suggestion}
+                  className="text-xs px-3 py-1.5 rounded-full border border-zinc-700 bg-surface-1 text-zinc-400"
+                >
+                  {suggestion}
+                </span>
+              ))}
+            </div>
           </div>
         )}
 

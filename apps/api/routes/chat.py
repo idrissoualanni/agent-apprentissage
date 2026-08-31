@@ -3,7 +3,7 @@
 import json
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
 from apps.api.services import agent_service
@@ -14,22 +14,46 @@ import apps.api.config as config
 
 router = APIRouter(tags=["chat"])
 
+# Longueur max d'une question : ~4 pages. Au-delà, le prompt moteur deviendrait
+# démesuré ; l'utilisateur doit découper sa demande.
+MAX_QUESTION_LENGTH = 4000
+
 
 class ChatRequest(BaseModel):
-    question: str
-    session_id: Optional[int] = None
-    thread_id: Optional[str] = None
-    user_id: str = "default_user"
+    question: str = Field(..., min_length=1, max_length=MAX_QUESTION_LENGTH)
+    session_id: Optional[int] = Field(None, ge=1)
+    thread_id: Optional[str] = Field(None, min_length=1, max_length=128)
+    user_id: str = Field("default_user", min_length=1, max_length=64)
     streaming: bool = False
-    model_override: Optional[str] = None
+    model_override: Optional[str] = Field(None, min_length=1, max_length=128)
     force_web_search: bool = False
+
+    @field_validator("question")
+    @classmethod
+    def question_not_blank(cls, v: str) -> str:
+        """Refuse une question composée uniquement d'espaces."""
+        if not v.strip():
+            raise ValueError("La question ne peut pas être vide")
+        return v
 
 
 class ConfirmationRequest(BaseModel):
-    session_id: Optional[int] = None
-    thread_id: Optional[str] = None
-    user_id: str = "default_user"
+    session_id: Optional[int] = Field(None, ge=1)
+    thread_id: Optional[str] = Field(None, min_length=1, max_length=128)
+    user_id: str = Field("default_user", min_length=1, max_length=64)
     accepted: bool
+
+
+class QuizAnswer(BaseModel):
+    """Une réponse d'une question du quiz interactif.
+
+    En miroir du frontend (QuizAnswerDetail, lib/types.ts) : les données du
+    quiz sont contrôlées à l'entrée, elles ne transitent plus en `list` brute.
+    """
+    question: str = Field(..., min_length=1, max_length=2000)
+    selected: Optional[int] = Field(None, ge=0, le=20)
+    correct: Optional[int] = Field(None, ge=0, le=20)
+    is_correct: bool = True
 
 
 class QuizSubmitRequest(BaseModel):
@@ -39,16 +63,25 @@ class QuizSubmitRequest(BaseModel):
     identifier, niveau) pour que FastAPI puisse renvoyer le résultat DANS
     LangGraph et obtenir un feedback adaptatif de l'agent.
     """
-    session_id: Optional[int] = None
-    thread_id: Optional[str] = None
-    competency_id: Optional[int] = None
-    competency_name: Optional[str] = None
-    artifact_id: Optional[str] = None          # identifier du <learning_artefact>
-    correct: int
-    total: int
-    answers: Optional[list] = None             # [{question, selected, correct, is_correct}]
-    user_id: str = "default_user"
+    session_id: Optional[int] = Field(None, ge=1)
+    thread_id: Optional[str] = Field(None, min_length=1, max_length=128)
+    competency_id: Optional[int] = Field(None, ge=1)
+    competency_name: Optional[str] = Field(None, min_length=1, max_length=200)
+    artifact_id: Optional[str] = Field(None, min_length=1, max_length=128)
+    correct: int = Field(..., ge=0, le=100)
+    total: int = Field(..., ge=1, le=100)
+    answers: Optional[list[QuizAnswer]] = None
+    user_id: str = Field("default_user", min_length=1, max_length=64)
     trigger_agent: bool = True                 # relancer LangGraph pour le feedback
+
+    @field_validator("answers")
+    @classmethod
+    def answers_count_matches(cls, v, info):
+        """Le nombre de réponses doit correspondre au total déclaré."""
+        total = info.data.get("total")
+        if v is not None and total is not None and len(v) != total:
+            raise ValueError(f"answers contient {len(v)} éléments, mais total = {total}")
+        return v
 
 
 @router.post("")
@@ -251,7 +284,9 @@ def quiz_submit(req: QuizSubmitRequest):
                     competency_name=req.competency_name or "ce sujet",
                     correct=req.correct,
                     total=req.total,
-                    answers=req.answers,
+                    # run_quiz_feedback attend des dicts {is_correct, ...},
+                    # pas des objets QuizAnswer.
+                    answers=[a.model_dump() for a in req.answers] if req.answers else None,
                     session_id=req.session_id,
                 )
                 agent_answer = result.get("answer", "")

@@ -52,6 +52,16 @@ def indexing_status():
     return rag_service.get_indexing_status()
 
 
+@router.get("/artifacts")
+def list_artifacts(session_id: Optional[int] = None, user_id: str = "default_user"):
+    """Liste les artefacts d'apprentissage (quiz, schémas…) produits par l'agent.
+
+    Correspond à l'appel frontend ``artifacts.list()`` (lib/api.ts), qui attend
+    un tableau JSON brut.
+    """
+    return crud.list_artifacts(user_id=user_id, session_id=session_id, db_path=config.DB_PATH)
+
+
 @router.delete("/{filename}")
 def delete_document(filename: str):
     """Supprime un document."""

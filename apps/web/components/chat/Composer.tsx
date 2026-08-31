@@ -207,7 +207,7 @@ export function Composer({ onSend, disabled = false }: ComposerProps) {
             onClick={handleSend}
             disabled={!input.trim() || disabled}
             title="Envoyer"
-            className="p-3 rounded-xl bg-primary-600 hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
+            className="p-3 rounded-xl bg-primary-600 hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed text-zinc-950 transition-colors"
           >
             {disabled ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
           </button>

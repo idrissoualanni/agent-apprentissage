@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Agent d'Apprentissage",
-  description: "Tuteur IA personnel avec quiz, Feynman et RAG",
+  title: "Lueur — Agent d'Apprentissage",
+  description:
+    "Tuteur IA personnel : dialogue socratique, Feynman, quiz et répétition espacée. La lumière de la compréhension, session après session.",
 };
 
 export default function RootLayout({
@@ -13,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr" className="dark">
-      <body className="h-screen overflow-hidden bg-surface-0 text-zinc-100">
+      <body className="h-screen overflow-hidden bg-surface-0 text-zinc-100 font-sans">
         {children}
       </body>
     </html>

@@ -1,5 +1,9 @@
 import type { Config } from "tailwindcss";
 
+/* « La lampe du tuteur » — palette sombre chaude.
+   surface / primary / zinc sont redéfinies en tons espresso + ambre afin que
+   l'ensemble de l'app (y compris les pages pas encore restylées) hérite du
+   thème sans toucher au balisage. */
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -8,26 +12,52 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        /* Accent ambre — la lumière de la compréhension */
         primary: {
-          50: "#eff6ff",
-          100: "#dbeafe",
-          200: "#bfdbfe",
-          300: "#93c5fd",
-          400: "#60a5fa",
-          500: "#3b82f6",
-          600: "#2563eb",
-          700: "#1d4ed8",
-          800: "#1e40af",
-          900: "#1e3a8a",
-          950: "#172554",
+          50: "#fdf6e9",
+          100: "#faead0",
+          200: "#f5d5a0",
+          300: "#efbc6e",
+          400: "#f0b454",
+          500: "#e8a33d",
+          600: "#c98224",
+          700: "#a8691b",
+          800: "#8a5618",
+          900: "#6b4213",
+          950: "#40260a",
         },
+        /* Surfaces espresso, du fond vers l'élévation */
         surface: {
-          0: "#09090b",
-          1: "#18181b",
-          2: "#27272a",
-          3: "#3f3f46",
-          4: "#52525b",
+          0: "#0f0d0a",
+          1: "#161310",
+          2: "#1e1a15",
+          3: "#28221b",
+          4: "#332c22",
         },
+        /* Zinc chaud — remplace le gris froid de Tailwind pour texte/filets */
+        zinc: {
+          50: "#faf7f0",
+          100: "#f2ecdf",
+          200: "#e4dbc8",
+          300: "#cfc3ab",
+          400: "#b3a894",
+          500: "#8b8069",
+          600: "#6f6653",
+          700: "#4a4335",
+          800: "#322c22",
+          900: "#211c14",
+          950: "#171310",
+        },
+        /* Vert sauge — maîtrise */
+        sage: {
+          DEFAULT: "#8fb573",
+          soft: "rgba(143, 181, 115, 0.14)",
+        },
+      },
+      fontFamily: {
+        display: ["Fraunces", "Georgia", "serif"],
+        sans: ["Manrope", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
       },
       animation: {
         "fade-in": "fadeIn 0.3s ease-in-out",
@@ -66,8 +96,8 @@ const config: Config = {
           "40%": { opacity: "1", transform: "scale(1)" },
         },
         glowPulse: {
-          "0%, 100%": { boxShadow: "0 0 0 0 rgba(59, 130, 246, 0)" },
-          "50%": { boxShadow: "0 0 20px 2px rgba(59, 130, 246, 0.15)" },
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(232, 163, 61, 0)" },
+          "50%": { boxShadow: "0 0 22px 2px rgba(232, 163, 61, 0.12)" },
         },
       },
     },

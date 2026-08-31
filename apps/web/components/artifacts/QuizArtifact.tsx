@@ -85,7 +85,7 @@ export function QuizArtifact({ title, content, metadata, sessionId }: QuizArtifa
     <div className="rounded-xl border border-zinc-800 bg-surface-1 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-surface-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-emerald-400 font-medium">Quiz</span>
+          <span className="text-xs text-emerald-300 font-medium">Quiz</span>
           <span className="text-xs text-zinc-500">{title}</span>
         </div>
         {quizState.submitted && quizState.score !== null && (
@@ -153,7 +153,7 @@ export function QuizArtifact({ title, content, metadata, sessionId }: QuizArtifa
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="w-full py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+            className="w-full py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-zinc-950 text-sm font-bold rounded-lg transition-colors"
           >
             {submitting ? "Envoi..." : "Valider"}
           </button>

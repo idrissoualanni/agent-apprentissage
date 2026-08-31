@@ -2,7 +2,7 @@
 
 import uuid
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 from apps.api.db import crud
@@ -13,12 +13,12 @@ router = APIRouter(tags=["sessions"])
 
 
 class SessionCreate(BaseModel):
-    title: str = "Nouvelle session"
-    user_id: str = "default_user"
+    title: str = Field("Nouvelle session", min_length=1, max_length=120)
+    user_id: str = Field("default_user", min_length=1, max_length=64)
 
 
 class SessionUpdate(BaseModel):
-    title: Optional[str] = None
+    title: str = Field(..., min_length=1, max_length=120)
 
 
 @router.get("")

@@ -2,42 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
+/* ─────────────────────────────────────────────────────────────────────────
+   « La lampe du tuteur » — thème sombre chaud.
+   Une session d'étude le soir : surfaces espresso, lumière ambre de la
+   compréhension, vert sauge pour la maîtrise. Les variables ci-dessous
+   alimentent tailwind.config.ts (surface / primary / zinc chauds).
+   ───────────────────────────────────────────────────────────────────────── */
 :root {
-  --bg-primary: #09090b;
-  --bg-secondary: #18181b;
-  --bg-tertiary: #27272a;
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --border: #27272a;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --success: #22c55e;
-  --warning: #eab308;
-  --error: #ef4444;
+  /* Surfaces — espresso chaud, du fond vers l'élévation */
+  --bg-primary: #0f0d0a;
+  --bg-secondary: #161310;
+  --bg-tertiary: #1e1a15;
+  --bg-raised: #28221b;
+
+  /* Texte — blanc cassé chaud */
+  --text-primary: #f2ecdf;
+  --text-secondary: #c2b8a3;
+  --text-muted: #8b8069;
+
+  /* Filets */
+  --border: #2e2820;
+  --border-strong: #3a3226;
+
+  /* Accent — lumière de la lampe (ambre) */
+  --accent: #e8a33d;
+  --accent-hover: #c98224;
+  --accent-soft: rgba(232, 163, 61, 0.14);
+
+  /* Maîtrise — vert sauge */
+  --success: #8fb573;
+  --warning: #d9a441;
+  --error: #d96c5f;
 }
 
 * {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Manrope', system-ui, -apple-system, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'ss01' on;
 }
 
-/* Scrollbar styling */
+/* Titres et grands chiffres : Fraunces, la voix intellectuelle du tuteur. */
+.font-display {
+  font-family: 'Fraunces', Georgia, serif;
+  font-optical-sizing: auto;
+}
+
+/* Scrollbar — fine et chaude */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -48,26 +74,42 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-tertiary);
+  background: var(--bg-raised);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+  background: #3a3226;
 }
 
 /* Code blocks */
-code, pre {
+code,
+pre {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Selection */
+/* Selection — halo ambre */
 ::selection {
-  background: rgba(59, 130, 246, 0.3);
+  background: rgba(232, 163, 61, 0.28);
+  color: #f2ecdf;
 }
 
-/* Streamlit-like focus ring */
+/* Focus ring — ambre */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Petites capitales pour les eyebrows (étiquettes de section) */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Halo subtil de la lampe derrière les cartes clés */
+.lamp-glow {
+  box-shadow: 0 0 40px -12px rgba(232, 163, 61, 0.18);
 }

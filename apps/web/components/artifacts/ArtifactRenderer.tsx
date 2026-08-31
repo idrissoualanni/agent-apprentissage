@@ -38,7 +38,7 @@ function SchemaArtifact({ title, content }: { title: string; content: string }) 
   return (
     <div className="rounded-xl border border-zinc-800 bg-surface-1 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-800 bg-surface-2">
-        <span className="text-xs text-pink-400 font-medium">Schema</span>
+        <span className="text-xs text-fuchsia-300 font-medium">Schéma</span>
         <span className="text-xs text-zinc-500">{title}</span>
       </div>
       <div className="p-4">
@@ -54,7 +54,7 @@ function CodeArtifact({ title, content }: { title: string; content: string }) {
   return (
     <div className="rounded-xl border border-zinc-800 bg-surface-1 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-800 bg-surface-2">
-        <span className="text-xs text-emerald-400 font-medium">Code</span>
+        <span className="text-xs text-emerald-300 font-medium">Code</span>
         <span className="text-xs text-zinc-500">{title}</span>
       </div>
       <pre className="p-4 text-sm text-zinc-300 font-mono bg-surface-0 overflow-x-auto">
@@ -75,7 +75,7 @@ function ChartArtifact({ title, content }: { title: string; content: string }) {
   return (
     <div className="rounded-xl border border-zinc-800 bg-surface-1 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-800 bg-surface-2">
-        <span className="text-xs text-blue-400 font-medium">Chart</span>
+        <span className="text-xs text-sky-300 font-medium">Graphique</span>
         <span className="text-xs text-zinc-500">{title}</span>
       </div>
       <div className="p-4">
