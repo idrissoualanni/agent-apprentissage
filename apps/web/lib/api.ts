@@ -98,7 +98,16 @@ export const progress = {
   overview: () => request<{ overview: unknown[] }>("/progress/overview").then((d) => d.overview),
   due: () => request<{ due: unknown[]; count: number }>("/progress/due").then((d) => d.due),
   revisionPlan: () => request<RevisionPlan>("/progress/revision-plan"),
-  summary: () => request<unknown>("/progress/summary"),
+  summary: () =>
+    request<{
+      total_competencies: number;
+      average_score: number;
+      acquired: number;
+      learning: number;
+      new: number;
+      due_for_review: number;
+      gaps: { id: number; nom: string; score: number }[];
+    }>("/progress/summary"),
   // Phase 6 : calendrier de revision (repetition espacee)
   revisionCalendar: () =>
     request<{ calendar: RevisionCalendarItem[]; count: number }>("/progress/revision/calendar").then((d) => d.calendar),
