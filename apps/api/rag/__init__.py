@@ -3,13 +3,16 @@
 from apps.api.rag.retriever import (
     get_or_create_retriever,
     add_documents_to_retriever,
-    create_retriever,
+    retrieve_semantic,
+    ChromaCloudRetriever,
 )
-from apps.api.rag.ingestion import ingest_pdf
+from apps.api.rag.ingestion import load_pdf, chunk_documents
 
 __all__ = [
     "get_or_create_retriever",
     "add_documents_to_retriever",
-    "create_retriever",
-    "ingest_pdf",
+    "retrieve_semantic",
+    "ChromaCloudRetriever",
+    "load_pdf",
+    "chunk_documents",
 ]
