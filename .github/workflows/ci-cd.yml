@@ -1,8 +1,6 @@
-# CI/CD : tests backend puis deploiement Fly.io automatique a chaque push sur main.
-# Le frontend est deja auto-deploye par l'integration Git de Vercel.
-#
-# Secret requis (a ajouter dans GitHub > Settings > Secrets and variables > Actions) :
-#   FLY_API_TOKEN = votre token (obtenu avec `flyctl auth token`)
+# CI/CD : tests backend a chaque push sur main.
+# Backend : auto-deploy par l'integration Git de Render (des que le build passe).
+# Frontend : auto-deploy par l'integration Git de Vercel.
 name: ci-cd
 
 on:
@@ -27,16 +25,3 @@ jobs:
 
       - name: Run backend tests
         run: python -m pytest tests/ -q
-
-  deploy-backend:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-
-      - name: Deploy to Fly.io
-        run: flyctl deploy --remote-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
