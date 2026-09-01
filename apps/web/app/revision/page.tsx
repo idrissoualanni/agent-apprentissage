@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { progress, type RevisionCalendarItem } from "@/lib/api";
 import {
+  Calendar,
   Clock,
   CheckCircle2,
 } from "lucide-react";

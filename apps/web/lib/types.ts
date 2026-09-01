@@ -83,9 +83,11 @@ export interface Document {
 }
 
 export interface IndexingStatus {
-  total: number;
+  total_pdfs?: number;
+  total?: number;
   indexed: number;
-  pending: string[];
+  pending?: unknown[] | number;
+  documents?: Document[];
 }
 
 // ── Tools ────────────────────────────────────────────────────────────────

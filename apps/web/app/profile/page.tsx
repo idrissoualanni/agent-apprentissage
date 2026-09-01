@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { profile } from "@/lib/api";
+import { profile, progress } from "@/lib/api";
 import type { LearnerProfile, CompetencyMastery } from "@/lib/types";
 import {
   Save,
@@ -34,6 +34,14 @@ function MasteryBar({ item }: { item: CompetencyMastery }) {
 
 export default function ProfilePage() {
   const [data, setData] = useState<LearnerProfile | null>(null);
+  const [summary, setSummary] = useState<{
+    total_competencies: number;
+    average_score: number;
+    acquired: number;
+    learning: number;
+    new: number;
+    gaps: { id: number; nom: string; score: number }[];
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [domain, setDomain] = useState("");
@@ -51,6 +59,10 @@ export default function ProfilePage() {
         setLearningContext(p.learning_context || "");
         setGoals(p.goals || "");
       })
+      .catch(console.error);
+    progress
+      .summary()
+      .then(setSummary)
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
@@ -147,52 +159,55 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Competencies breakdown */}
-            {data && (
+            {/* Competencies breakdown — vraies donnees de /progress/summary */}
+            {summary && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 {/* Mastered */}
                 <div className="rounded-xl border border-zinc-800 bg-surface-1 p-4">
                   <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium mb-3">
                     <CheckCircle2 size={16} />
-                    Maitrisees ({data.mastered_competencies?.length || 0})
+                    Maîtrisées ({summary.acquired ?? 0})
                   </div>
-                  <div className="space-y-2">
-                    {data.mastered_competencies?.map((c) => (
-                      <MasteryBar key={c.competency_id} item={c} />
-                    ))}
-                    {(!data.mastered_competencies || data.mastered_competencies.length === 0) && (
-                      <p className="text-xs text-zinc-600">Aucune</p>
-                    )}
-                  </div>
+                  <p className="text-xs text-zinc-600">
+                    {summary.acquired
+                      ? "Compétences acquises (score ≥ 70%)"
+                      : "Aucune pour l'instant"}
+                  </p>
                 </div>
 
                 {/* Learning */}
                 <div className="rounded-xl border border-zinc-800 bg-surface-1 p-4">
-                  <div className="flex items-center gap-2 text-blue-400 text-sm font-medium mb-3">
+                  <div className="flex items-center gap-2 text-primary-400 text-sm font-medium mb-3">
                     <BookOpen size={16} />
-                    En cours ({data.learning_competencies?.length || 0})
+                    En cours ({summary.learning ?? 0})
                   </div>
-                  <div className="space-y-2">
-                    {data.learning_competencies?.map((c) => (
-                      <MasteryBar key={c.competency_id} item={c} />
-                    ))}
-                    {(!data.learning_competencies || data.learning_competencies.length === 0) && (
-                      <p className="text-xs text-zinc-600">Aucune</p>
-                    )}
-                  </div>
+                  <p className="text-xs text-zinc-600">
+                    {summary.learning
+                      ? "Compétences en apprentissage"
+                      : "Aucune pour l'instant"}
+                  </p>
                 </div>
 
                 {/* Gaps */}
                 <div className="rounded-xl border border-zinc-800 bg-surface-1 p-4">
                   <div className="flex items-center gap-2 text-red-400 text-sm font-medium mb-3">
                     <AlertTriangle size={16} />
-                    Lacunes ({data.gaps?.length || 0})
+                    À travailler ({Array.isArray(summary.gaps) ? summary.gaps.length : 0})
                   </div>
-                  <div className="space-y-2">
-                    {data.gaps?.map((c) => (
-                      <MasteryBar key={c.competency_id} item={c} />
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {(summary.gaps || []).slice(0, 10).map((c) => (
+                      <MasteryBar
+                        key={c.id}
+                        item={{
+                          competency_id: c.id,
+                          nom: c.nom,
+                          score: c.score,
+                          status: "gap",
+                          box: 0,
+                        }}
+                      />
                     ))}
-                    {(!data.gaps || data.gaps.length === 0) && (
+                    {(!summary.gaps || summary.gaps.length === 0) && (
                       <p className="text-xs text-zinc-600">Aucune</p>
                     )}
                   </div>
@@ -201,12 +216,16 @@ export default function ProfilePage() {
             )}
 
             {/* Score */}
-            {data && (
+            {summary && (
               <div className="rounded-xl border border-zinc-800 bg-surface-1 p-5">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-zinc-400">Score moyen</span>
+                  <span className="text-sm text-zinc-400">
+                    Score moyen ({summary.total_competencies} compétences)
+                  </span>
                   <span className="text-2xl font-bold text-zinc-100">
-                    {data.average_score ? `${Math.round(data.average_score * 100)}%` : "—"}
+                    {summary.average_score
+                      ? `${Math.round(summary.average_score * 100)}%`
+                      : "—"}
                   </span>
                 </div>
               </div>

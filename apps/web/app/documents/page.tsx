@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { documents } from "@/lib/api";
 import type { Document as Doc, IndexingStatus } from "@/lib/types";
 import {
+  FileText,
   Upload,
   Trash2,
   CheckCircle2,
@@ -96,12 +97,12 @@ export default function DocumentsPage() {
           <div className="mb-6 p-4 rounded-xl border border-zinc-800 bg-surface-1">
             <div className="flex items-center gap-2 text-sm text-zinc-400 mb-2">
               <CheckCircle2 size={16} className="text-emerald-400" />
-              {status.indexed}/{status.total} document(s) indexe(s)
+              {status.indexed ?? 0}/{status.total_pdfs ?? status.total ?? 0} document(s) indexé(s)
             </div>
-            {status.pending.length > 0 && (
+            {Array.isArray(status.pending) && status.pending.length > 0 && (
               <div className="flex items-center gap-2 text-sm text-yellow-400">
                 <AlertCircle size={16} />
-                {status.pending.length} en attente d'indexation
+                {status.pending.length} en attente d&apos;indexation
               </div>
             )}
           </div>
