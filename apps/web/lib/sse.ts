@@ -4,19 +4,54 @@ import type { StreamEvent } from "./types";
 
 type SSECallback = (event: StreamEvent) => void;
 
+interface StreamOptions {
+  timeoutMs?: number;  // Timeout sans token (defaut 15s)
+  onTimeout?: () => void;
+  onError?: (error: Error) => void;
+}
+
 /**
  * Ouvre une connexion SSE pour le chat streaming.
  * Retourne un controller pour annuler.
+ * 
+ * Features :
+ * - Timeout client (aucun token en 15s → erreur)
+ * - Gestion propre des erreurs de connexion
+ * - Callback onTimeout pour afficher un bouton "Réessayer"
  */
 export function streamChat(
   question: string,
   sessionId: number,
   onEvent: SSECallback,
-  onError?: (error: Error) => void
+  options: StreamOptions = {}
 ): AbortController {
+  const {
+    timeoutMs = 15000,
+    onTimeout,
+    onError,
+  } = options;
+  
   const controller = new AbortController();
+  let lastTokenTime = Date.now();
+  let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
 
-  fetch("/api/chat", {
+  // Timer de timeout : declenche onTimeout si aucun token recu pendant timeoutMs
+  const startTimeoutTimer = () => {
+    if (timeoutTimer) clearTimeout(timeoutTimer);
+    timeoutTimer = setTimeout(() => {
+      if (Date.now() - lastTokenTime > timeoutMs) {
+        controller.abort();
+        onTimeout?.();
+      }
+    }, timeoutMs);
+  };
+
+  const resetTimeoutTimer = () => {
+    lastTokenTime = Date.now();
+    startTimeoutTimer();
+  };
+
+  fetch(`${API_BASE}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ question, session_id: sessionId, streaming: true }),
@@ -33,6 +68,9 @@ export function streamChat(
       const decoder = new TextDecoder();
       let buffer = "";
 
+      // Demarrer le timeout apres le premier token
+      let started = false;
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -46,21 +84,38 @@ export function streamChat(
             try {
               const data = JSON.parse(line.slice(6));
               onEvent(data as StreamEvent);
+              
+              // Reset timeout a chaque token recu
+              if (!started) {
+                started = true;
+                startTimeoutTimer();
+              } else {
+                resetTimeoutTimer();
+              }
             } catch {
               // Ignore malformed SSE lines
             }
           }
         }
       }
+      
+      // Clear timeout quand le stream est termine
+      if (timeoutTimer) clearTimeout(timeoutTimer);
     })
     .catch((err) => {
-      if (err.name !== "AbortError") {
-        onError?.(err);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      if (err.name === "AbortError") {
+        // Timeout ou abort explicite — deja gere par onTimeout
+        return;
       }
+      onError?.(err);
     });
 
   return controller;
 }
+
+// API_BASE pour le module SSE (meme logique que api.ts)
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 /**
  * Parse une réponse JSON normale en événements simulés.
