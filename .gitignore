@@ -1,90 +1,64 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-*.egg-info/
+```
+# Dependencies
+node_modules/
+
+# Build artifacts
 dist/
 build/
-*.egg
+.next/
 
-# Virtual environment
-venv/
-.venv/
-env/
-
-# Environment
+# Environment variables
 .env
-.env.studio
 .env.local
-.env*.local
+.env.*
 
-# Docker — surcharges locales et fichiers d'environnement (peuvent contenir des secrets)
-docker-compose.override.yml
-docker-compose.override.yaml
-docker-compose.*.local.yml
-docker-compose.*.local.yaml
-compose.override.yml
-compose.override.yaml
-.docker-env
-docker.env
-
-# Vercel
-.vercel/
-apps/web/.vercel/
+# IDE files
+.vscode/
+.idea/
 
 # Logs
 *.log
-backend.log
-backend.err.log
 
-# Fichiers locaux a ne JAMAIS committer
-test_key.py
-web_research_results.json
-persist/
-
-# LangGraph Studio runtime
-.langgraph_api/
-
-# Databases
-*.db
-*.db-shm
-*.db-wal
-*.db-x-*
-
-# ChromaDB data (recreated from PDFs)
-data/chroma/
-
-# Next.js build
-apps/web/.next/
-apps/web/out/
-*.tsbuildinfo
-
-# OS
+# OS generated files
 .DS_Store
 Thumbs.db
-desktop.ini
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# Streamlit
-.streamlit/secrets.toml
+# Temporary files
+*.tmp
+*.temp
 
-# Drawio backups
-.$*.drawio.bkp
+# Coverage reports
+coverage/
+htmlcov/
 
-# Bin files
-*.bin
-data/documents/
-.agents/
-.claude/
-nul
+# Compression artifacts
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
 
-# Node
-node_modules/
-
-.pnpm-store/
+```

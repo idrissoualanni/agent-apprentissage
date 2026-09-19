@@ -40,6 +40,9 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
   // connexion) ; la banniere n'apparait qu'apres un echec reel.
   const [socketConnected, setSocketConnected] = useState(true);
   const [notification, setNotification] = useState<string | null>(null);
+  // FE-02 : Gestion des erreurs de streaming
+  const [streamError, setStreamError] = useState<string | null>(null);
+  const [streamTimeout, setStreamTimeout] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -56,6 +59,8 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
     setStreamingText("");
     setPendingConfirmation(null);
     setLoadError(null);
+    setStreamError(null);
+    setStreamTimeout(false);
     if (cachedMessages && cachedMessages.length > 0) {
       setMessages(cachedMessages);
       return;
@@ -88,6 +93,9 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
       onToken: (text) => {
         streamingRef.current += text;
         setStreamingText(streamingRef.current);
+        // Reset timeout state quand on recoit des tokens
+        setStreamTimeout(false);
+        setStreamError(null);
       },
       onMessage: (msg) => {
         const assistantMsg: ChatMessage = {
@@ -103,12 +111,16 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
         setStreamingText("");
         streamingRef.current = "";
         setIsStreaming(false);
+        setStreamTimeout(false);
+        setStreamError(null);
       },
       onConfirmationRequest: (type, prompt) => {
         setPendingConfirmation({ type, prompt, messageId: Date.now() });
         setIsStreaming(false);
         setStreamingText("");
         streamingRef.current = "";
+        setStreamTimeout(false);
+        setStreamError(null);
       },
       onNotification: (kind, data) => {
         if (kind === "revision_due") {
@@ -118,6 +130,7 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
       onError: (message) => {
         if (message === "agent_busy") return; // l'UI desactive deja l'envoi
         console.error("WS error:", message);
+        setStreamError("Erreur de connexion temps réel");
       },
       onStatusChange: setSocketConnected,
     });
@@ -135,6 +148,8 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
     setIsStreaming(true);
     setStreamingText("");
     setToolsUsed([]);
+    setStreamError(null);
+    setStreamTimeout(false);
 
     // Add user message immediately
     const userMsg: ChatMessage = {
@@ -157,7 +172,7 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
       return; // la reponse arrive par onToken/onMessage
     }
 
-    // Sinon : fallback HTTP
+    // Sinon : fallback HTTP avec gestion d'erreur amelioree (FE-02)
     try {
       const response = await chat.send({
         question: trimmed,
@@ -202,18 +217,22 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
       }
     } catch (err) {
       console.error("Chat error:", err);
-      const errorMsg: ChatMessage = {
-        id: Date.now(),
-        role: "assistant",
-        content: `Erreur: ${err instanceof Error ? err.message : "Erreur inconnue"}`,
-        created_at: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
-      setStreamingText("");
+      setStreamError(err instanceof Error ? err.message : "Erreur de communication");
     } finally {
       setIsStreaming(false);
     }
   }, [isStreaming, sessionId]);
+
+  const handleRetry = useCallback(() => {
+    // Re-envoie le dernier message utilisateur en cas d'erreur
+    const lastUserMsg = messages.filter(m => m.role === "user").pop();
+    if (lastUserMsg) {
+      setMessages(prev => prev.slice(0, -1)); // Retire le dernier message user
+      handleSend(lastUserMsg.content, false);
+    }
+    setStreamError(null);
+    setStreamTimeout(false);
+  }, [messages, handleSend]);
 
   const handleConfirm = async (accepted: boolean) => {
     if (!pendingConfirmation) return;
@@ -234,6 +253,8 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
         setIsStreaming(true);
         streamingRef.current = "";
         setStreamingText("");
+        setStreamTimeout(false);
+        setStreamError(null);
       }
       return;
     }
@@ -262,6 +283,8 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
       // Stream the response
       setIsStreaming(true);
       setStreamingText("");
+      setStreamTimeout(false);
+      setStreamError(null);
 
       let accumulated = "";
       const words = response.answer.split(" ");
@@ -285,6 +308,7 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
     } catch (err) {
       console.error("Confirmation error:", err);
       setPendingConfirmation(null);
+      setStreamError(err instanceof Error ? err.message : "Erreur de confirmation");
     } finally {
       setIsStreaming(false);
     }
@@ -326,7 +350,27 @@ export function ChatWindow({ sessionId, cachedMessages, onCacheMessages }: ChatW
           </div>
         )}
 
-        {messages.length === 0 && !streamingText && !loadError && (
+        {/* FE-02 : Banniere d'erreur de streaming avec bouton regenerer */}
+        {(streamError || streamTimeout) && (
+          <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-red-900/50 bg-red-950/20">
+            <div className="flex items-center gap-2 text-sm text-red-300">
+              <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span>
+                {streamTimeout 
+                  ? "Délai d'attente dépassé — le serveur met trop de temps à répondre"
+                  : streamError || "Erreur de streaming"}
+              </span>
+            </div>
+            <button
+              onClick={handleRetry}
+              className="px-3 py-1.5 rounded-md bg-red-900/40 hover:bg-red-900/60 text-red-200 text-xs font-medium transition-colors whitespace-nowrap"
+            >
+              Régénérer
+            </button>
+          </div>
+        )}
+
+        {messages.length === 0 && !streamingText && !loadError && !streamError && (
           <div className="flex flex-col items-center justify-center h-full text-center px-6">
             <div className="font-display text-2xl text-zinc-200">
               Qu&apos;as-tu envie de comprendre aujourd&apos;hui ?

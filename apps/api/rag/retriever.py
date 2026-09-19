@@ -200,9 +200,28 @@ class ChromaCloudRetriever:
         return self.invoke(query, **kwargs)
 
     def invoke(self, query: str, **kwargs) -> list:
-        """Recherche hybride → Documents LangChain, dedup par source_doc_id."""
+        """Recherche hybride → Documents LangChain, dedup par source_doc_id.
+        
+        BE-02: Protection anti-injection de prompt
+        - Le contenu est balisé comme DONNÉE, jamais comme instruction
+        - Les patterns d'injection sont filtrés
+        """
         from langchain_core.documents import Document
-
+        
+        # Patterns d'injection de prompt à détecter/filtrer
+        INJECTION_PATTERNS = [
+            "ignore previous",
+            "ignore les instructions",
+            "oublie les instructions",
+            "system:",
+            "user:",
+            "assistant:",
+            "###",
+            "```",
+            "<script",
+            "javascript:",
+        ]
+        
         try:
             res = self.hybrid_search(query, top_k=kwargs.get("k"))
         except Exception as e:
@@ -212,7 +231,7 @@ class ChromaCloudRetriever:
                                             n_results=self.top_k)
             except Exception as e2:
                 logger.warning(f"Repli dense echoue ({e2})")
-                return [], 0.0, False if False else []
+                return []
 
         docs_raw, metas = self._extract(res)
         if not docs_raw:
@@ -227,7 +246,24 @@ class ChromaCloudRetriever:
                 continue
             if src:
                 seen.add(src)
-            out.append(Document(page_content=text, metadata=meta))
+            
+            # BE-02: Filtrer les patterns d'injection dans le contenu
+            filtered_text = text
+            for pattern in INJECTION_PATTERNS:
+                if pattern.lower() in filtered_text.lower():
+                    logger.warning(f"Pattern d'injection detecte: {pattern}")
+                    # Remplacer par une version neutre
+                    filtered_text = filtered_text.replace(
+                        pattern, 
+                        f"[CONTENU_FILTRE: {pattern}]"
+                    )
+            
+            # BE-02: Baliser le contenu comme DONNÉE (pas instruction)
+            balanced_content = f"<document source=\"{meta.get('source', 'unknown')}\">" \
+                              f"{filtered_text}" \
+                              f"</document>"
+            
+            out.append(Document(page_content=balanced_content, metadata=meta))
         return out
 
     @staticmethod
