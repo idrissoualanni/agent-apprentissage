@@ -53,8 +53,13 @@ export default function RevisionPage() {
       }
     >
       {/* Main */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">Calendrier de revision</h1>
+      <div className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.09),transparent_32rem)] p-4 sm:p-6">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-8">
+            <div className="eyebrow mb-2">Répétition espacée</div>
+            <h1 className="font-display text-3xl text-zinc-100">Calendrier de révision</h1>
+            <p className="mt-2 text-sm text-zinc-500">Reviens au bon moment pour ancrer durablement tes connaissances.</p>
+          </div>
 
         {loading ? (
           <div className="space-y-3">
@@ -149,6 +154,7 @@ export default function RevisionPage() {
             </div>
           </>
         )}
+        </div>
       </div>
     </AppShell>
   );

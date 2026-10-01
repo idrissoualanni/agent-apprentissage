@@ -91,8 +91,13 @@ export default function ProfilePage() {
         </SidebarColumn>
       }
     >
-      <div className="flex-1 overflow-y-auto p-6 max-w-3xl">
-        <h1 className="text-2xl font-bold mb-6">Profil d&apos;apprentissage</h1>
+      <div className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.09),transparent_32rem)] p-4 sm:p-6">
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-8">
+            <div className="eyebrow mb-2">Ton parcours</div>
+            <h1 className="font-display text-3xl text-zinc-100">Profil d&apos;apprentissage</h1>
+            <p className="mt-2 text-sm text-zinc-500">Ajuste ton contexte pour rendre chaque session plus pertinente.</p>
+          </div>
 
         {loading ? (
           <div className="space-y-4">
@@ -232,6 +237,7 @@ export default function ProfilePage() {
             )}
           </>
         )}
+        </div>
       </div>
     </AppShell>
   );

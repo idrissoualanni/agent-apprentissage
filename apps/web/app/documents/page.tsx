@@ -73,9 +73,14 @@ export default function DocumentsPage() {
     >
 
       {/* Main */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Documents</h1>
+      <div className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.09),transparent_32rem)] p-4 sm:p-6">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="eyebrow mb-2">Bibliothèque</div>
+              <h1 className="font-display text-3xl text-zinc-100">Documents</h1>
+              <p className="mt-2 text-sm text-zinc-500">Tes supports indexés, prêts à nourrir tes sessions.</p>
+            </div>
           <label
             className={`flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg cursor-pointer transition-colors ${
               uploading ? "opacity-50 pointer-events-none" : ""
@@ -146,8 +151,9 @@ export default function DocumentsPage() {
               </div>
             ))}
           </div>
-        )}
-      </div>
-    </AppShell>
+          )}
+        </div>
+        </div>
+      </AppShell>
   );
 }

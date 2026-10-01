@@ -56,8 +56,13 @@ export default function ModelsPage() {
         </SidebarColumn>
       }
     >
-      <div className="flex-1 overflow-y-auto p-6 max-w-4xl">
-        <h1 className="text-2xl font-bold mb-6">Gestion des Modeles</h1>
+      <div className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.09),transparent_32rem)] p-4 sm:p-6">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-8">
+            <div className="eyebrow mb-2">Configuration</div>
+            <h1 className="font-display text-3xl text-zinc-100">Modèles d&apos;IA</h1>
+            <p className="mt-2 text-sm text-zinc-500">Choisis le moteur adapté à chaque moment d&apos;apprentissage.</p>
+          </div>
 
         {loading ? (
           <div className="space-y-4">
@@ -139,6 +144,7 @@ export default function ModelsPage() {
             </div>
           </>
         )}
+        </div>
       </div>
     </AppShell>
   );
