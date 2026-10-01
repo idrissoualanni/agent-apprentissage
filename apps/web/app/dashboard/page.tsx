@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   TrendingUp,
   BookOpen,
   AlertTriangle,
   CheckCircle2,
+  ArrowUpRight,
+  Sparkles,
+  Target,
 } from "lucide-react";
 import { progress } from "@/lib/api";
 import { AppShell, SidebarColumn } from "@/components/layout/AppShell";
@@ -63,8 +67,20 @@ export default function DashboardPage() {
         </SidebarColumn>
       }
     >
-      <div className="flex-1 overflow-y-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">Tableau de bord</h1>
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-7xl p-5 sm:p-8">
+          <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="eyebrow mb-2">Vue d&apos;ensemble</p>
+              <h1 className="font-display text-3xl tracking-tight text-zinc-100 sm:text-4xl">Votre progression</h1>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-400">Un aperçu clair de vos acquis et des prochaines notions à consolider.</p>
+            </div>
+            <Link href="/chat" className="group inline-flex items-center gap-2 self-start rounded-lg bg-primary-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/15 transition hover:bg-primary-400 sm:self-auto">
+              <Sparkles size={16} />
+              Démarrer une session
+              <ArrowUpRight size={15} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </Link>
+          </header>
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -75,10 +91,10 @@ export default function DashboardPage() {
         ) : (
           <>
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <div className="rounded-xl border border-zinc-800 bg-surface-1 p-4">
-                <div className="flex items-center gap-2 text-zinc-400 text-sm mb-2">
-                  <TrendingUp size={16} />
+            <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="dashboard-card rounded-2xl border border-zinc-800/80 bg-surface-1 p-5 transition hover:-translate-y-0.5 hover:border-zinc-700">
+                <div className="mb-3 flex items-center gap-2 text-sm text-zinc-400">
+                  <TrendingUp size={16} className="text-primary-400" />
                   Score moyen
                 </div>
                 <div className="text-3xl font-bold text-zinc-100">
@@ -88,9 +104,9 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-zinc-800 bg-surface-1 p-4">
-                <div className="flex items-center gap-2 text-zinc-400 text-sm mb-2">
-                  <CheckCircle2 size={16} />
+              <div className="dashboard-card rounded-2xl border border-zinc-800/80 bg-surface-1 p-5 transition hover:-translate-y-0.5 hover:border-zinc-700">
+                <div className="mb-3 flex items-center gap-2 text-sm text-zinc-400">
+                  <CheckCircle2 size={16} className="text-emerald-400" />
                   Maîtrisées
                 </div>
                 <div className="text-3xl font-bold text-emerald-400">
@@ -98,9 +114,9 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-zinc-800 bg-surface-1 p-4">
-                <div className="flex items-center gap-2 text-zinc-400 text-sm mb-2">
-                  <BookOpen size={16} />
+              <div className="dashboard-card rounded-2xl border border-zinc-800/80 bg-surface-1 p-5 transition hover:-translate-y-0.5 hover:border-zinc-700">
+                <div className="mb-3 flex items-center gap-2 text-sm text-zinc-400">
+                  <BookOpen size={16} className="text-primary-400" />
                   En cours
                 </div>
                 <div className="text-3xl font-bold text-primary-400">
@@ -108,9 +124,9 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-zinc-800 bg-surface-1 p-4">
-                <div className="flex items-center gap-2 text-zinc-400 text-sm mb-2">
-                  <AlertTriangle size={16} />
+              <div className="dashboard-card rounded-2xl border border-zinc-800/80 bg-surface-1 p-5 transition hover:-translate-y-0.5 hover:border-zinc-700">
+                <div className="mb-3 flex items-center gap-2 text-sm text-zinc-400">
+                  <AlertTriangle size={16} className="text-red-400" />
                   Lacunes
                 </div>
                 <div className="text-3xl font-bold text-red-400">
@@ -122,10 +138,11 @@ export default function DashboardPage() {
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Pie chart */}
-              <div className="rounded-xl border border-zinc-800 bg-surface-1 p-4">
-                <h3 className="text-sm font-medium text-zinc-400 mb-4">
-                  Répartition ({totalCount} compétences)
-                </h3>
+              <section className="rounded-2xl border border-zinc-800/80 bg-surface-1 p-5">
+                <div className="mb-5 flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-zinc-200">Répartition ({totalCount} compétences)</h2>
+                  <Target size={17} className="text-zinc-500" />
+                </div>
                 {pieData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
@@ -156,19 +173,20 @@ export default function DashboardPage() {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-sm text-zinc-500 py-8 text-center">
-                    Aucune compétence enregistrée pour l&apos;instant.
-                    <br />
-                    Elles apparaîtront après vos sessions d&apos;apprentissage.
-                  </p>
+                  <div className="flex min-h-60 flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 px-6 text-center">
+                    <div className="mb-3 flex size-10 items-center justify-center rounded-full bg-primary-500/10 text-primary-400"><BookOpen size={18} /></div>
+                    <p className="max-w-xs text-sm leading-6 text-zinc-400">Aucune compétence enregistrée pour l&apos;instant. Elles apparaîtront après vos sessions d&apos;apprentissage.</p>
+                    <Link href="/chat" className="mt-4 text-sm font-semibold text-primary-400 hover:text-primary-300">Commencer à apprendre <ArrowUpRight size={14} className="ml-1 inline" /></Link>
+                  </div>
                 )}
-              </div>
+              </section>
 
               {/* Revision plan */}
-              <div className="rounded-xl border border-zinc-800 bg-surface-1 p-4">
-                <h3 className="text-sm font-medium text-zinc-400 mb-4">
-                  Plan de révision
-                </h3>
+              <section className="rounded-2xl border border-zinc-800/80 bg-surface-1 p-5">
+                <div className="mb-5 flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-zinc-200">Plan de révision</h2>
+                  <Target size={17} className="text-zinc-500" />
+                </div>
                 {planItems.length > 0 ? (
                   <div className="space-y-2">
                     {planItems.slice(0, 6).map((item, i) => (
@@ -198,11 +216,12 @@ export default function DashboardPage() {
                     {revisionPlan?.message || "Aucun item à réviser"}
                   </p>
                 )}
-              </div>
+              </section>
             </div>
           </>
         )}
-      </div>
+        </div>
+      </main>
     </AppShell>
   );
 }
